@@ -1,5 +1,6 @@
 """Основной класс Telegram-бота."""
 
+import asyncio
 import logging
 from datetime import datetime
 from aiogram import Bot as AiogramBot, Dispatcher
@@ -382,9 +383,38 @@ class Bot:
             # 6. Сохраняем обновленную историю
             await self.storage.save_history(user_id, history)
             
-            # 7. Отправляем ответ пользователю
-            await message.answer(response)
-            logger.debug(f"User {user_id}: response sent ({len(response)} chars)")
+            # 7. Отправляем ответ пользователю (с разбивкой если нужно)
+            # Разбиваем длинные сообщения на части
+            message_parts = self._split_message(response)
+            
+            if len(message_parts) == 1:
+                # Короткое сообщение - отправляем как есть
+                await message.answer(response)
+                logger.debug(f"User {user_id}: response sent ({len(response)} chars)")
+            else:
+                # Длинное сообщение - отправляем по частям
+                logger.info(
+                    f"User {user_id}: splitting long response into {len(message_parts)} parts "
+                    f"(total {len(response)} chars)"
+                )
+                
+                for i, part in enumerate(message_parts, 1):
+                    # Добавляем индикатор части если сообщений больше одного
+                    if len(message_parts) > 1:
+                        part_indicator = f"📄 Часть {i}/{len(message_parts)}\n\n"
+                        part_with_indicator = part_indicator + part
+                    else:
+                        part_with_indicator = part
+                    
+                    await message.answer(part_with_indicator)
+                    
+                    # Небольшая задержка между частями для лучшей читаемости
+                    if i < len(message_parts):
+                        await asyncio.sleep(0.5)
+                
+                logger.debug(
+                    f"User {user_id}: all {len(message_parts)} parts sent successfully"
+                )
             
         except LLMAPIError as e:
             logger.error(f"User {user_id}: LLM API error: {e}")
@@ -398,6 +428,62 @@ class Bot:
             await message.answer(
                 "⚠️ Произошла ошибка при обработке запроса. Попробуйте позже."
             )
+    
+    def _split_message(self, text: str, max_length: int = 4096) -> list[str]:
+        """
+        Разбивает длинный текст на части, не превышающие max_length символов.
+        
+        Старается разбивать по границам абзацев и предложений для читаемости.
+        
+        Args:
+            text: Текст для разбивки
+            max_length: Максимальная длина одной части (по умолчанию 4096)
+            
+        Returns:
+            Список частей текста
+        """
+        # Если текст короче лимита, возвращаем как есть
+        if len(text) <= max_length:
+            return [text]
+        
+        parts = []
+        remaining_text = text
+        
+        while remaining_text:
+            # Если остаток меньше лимита, добавляем и выходим
+            if len(remaining_text) <= max_length:
+                parts.append(remaining_text)
+                break
+            
+            # Ищем место для разрыва
+            chunk = remaining_text[:max_length]
+            
+            # Пытаемся разбить по двойному переводу строки (абзацы)
+            split_pos = chunk.rfind("\n\n")
+            
+            # Если не нашли, пытаемся по одинарному переводу строки
+            if split_pos == -1:
+                split_pos = chunk.rfind("\n")
+            
+            # Если не нашли, пытаемся по точке с пробелом (конец предложения)
+            if split_pos == -1:
+                split_pos = chunk.rfind(". ")
+                if split_pos != -1:
+                    split_pos += 1  # Включаем точку в текущую часть
+            
+            # Если не нашли, пытаемся по любому пробелу
+            if split_pos == -1:
+                split_pos = chunk.rfind(" ")
+            
+            # В крайнем случае режем по лимиту (оставляем небольшой margin)
+            if split_pos == -1 or split_pos < max_length * 0.5:
+                split_pos = max_length - 100  # Оставляем margin для безопасности
+            
+            # Добавляем часть и продолжаем с остатком
+            parts.append(remaining_text[:split_pos].strip())
+            remaining_text = remaining_text[split_pos:].strip()
+        
+        return parts
     
     def _get_error_message(self, error: str) -> str:
         """
