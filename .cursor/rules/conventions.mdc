@@ -57,6 +57,48 @@ alwaysApply: true
 - Используем встроенные модули где возможно (`logging`, `argparse`, `json`)
 - Без "а вдруг пригодится"
 
+## Работа с UV в Windows PowerShell
+
+### ⚠️ Важно для Windows!
+
+**Все команды обращенные к `uv` необходимо выполнять через полный путь:**
+
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe"
+```
+
+### Почему так?
+- В PowerShell команда `uv` может не распознаваться напрямую
+- Полный путь через `$env:USERPROFILE` гарантирует работу
+- Оператор `&` используется для вызова исполняемых файлов в PowerShell
+
+### Примеры команд:
+
+**Запуск бота:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run python -m src.main --env-file .env.development
+```
+
+**Установка/синхронизация зависимостей:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" sync
+```
+
+**Добавление новой библиотеки:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" add <package-name>
+```
+
+**Запуск скриптов:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run python test_script.py
+```
+
+**Проверка импортов:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run python -c "from src.bot import Bot; print('OK')"
+```
+
 ## Структура кода
 
 ### Компоненты (примеры из vision.md)
