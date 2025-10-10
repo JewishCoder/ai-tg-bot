@@ -1,6 +1,7 @@
 """Основной класс Telegram-бота."""
 
 import logging
+from datetime import datetime
 from aiogram import Bot as AiogramBot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message
@@ -8,6 +9,7 @@ from aiogram.enums import ChatAction
 
 from src.config import Config
 from src.llm_client import LLMClient, LLMAPIError
+from src.storage import Storage
 
 logger = logging.getLogger(__name__)
 
@@ -33,6 +35,7 @@ class Bot:
         self.bot = AiogramBot(token=config.telegram_token)
         self.dp = Dispatcher()
         self.llm_client = LLMClient(config)
+        self.storage = Storage(config)
         self._register_handlers()
         logger.info("Bot initialized")
     
@@ -40,6 +43,7 @@ class Bot:
         """Регистрация обработчиков команд и сообщений."""
         self.dp.message.register(self._handle_start, Command("start"))
         self.dp.message.register(self._handle_help, Command("help"))
+        self.dp.message.register(self._handle_reset, Command("reset"))
         self.dp.message.register(self._handle_message)
         logger.info("Handlers registered")
     
@@ -56,10 +60,11 @@ class Bot:
         welcome_text = (
             "👋 Привет! Я AI-ассистент на базе LLM.\n\n"
             "Я могу отвечать на твои вопросы и поддерживать диалог.\n"
-            "Задавай любые вопросы, и я постараюсь помочь!\n\n"
+            "Я запоминаю контекст разговора, чтобы давать более точные ответы!\n\n"
             "Доступные команды:\n"
             "/start - начать работу с ботом\n"
-            "/help - показать список команд\n\n"
+            "/help - показать список команд\n"
+            "/reset - очистить историю диалога\n\n"
             "Просто отправь мне сообщение, и я отвечу!"
         )
         
@@ -78,17 +83,43 @@ class Bot:
         help_text = (
             "📚 Доступные команды:\n\n"
             "/start - начать работу с ботом\n"
-            "/help - показать эту справку\n\n"
-            "💬 Просто отправь мне любое текстовое сообщение, и я отвечу!"
+            "/help - показать эту справку\n"
+            "/reset - очистить историю диалога\n\n"
+            "💬 Просто отправь мне любое текстовое сообщение, и я отвечу!\n"
+            "Я запоминаю контекст разговора для более точных ответов."
         )
         
         await message.answer(help_text)
+    
+    async def _handle_reset(self, message: Message) -> None:
+        """
+        Обработчик команды /reset.
+        
+        Очищает историю диалога пользователя.
+        
+        Args:
+            message: Входящее сообщение от пользователя
+        """
+        user_id = message.from_user.id if message.from_user else 0
+        logger.info(f"User {user_id}: /reset command")
+        
+        try:
+            await self.storage.clear_history(user_id)
+            await message.answer(
+                "🔄 История диалога очищена.\n"
+                "Начинаем с чистого листа!"
+            )
+        except Exception as e:
+            logger.error(f"User {user_id}: Failed to clear history: {e}", exc_info=True)
+            await message.answer(
+                "⚠️ Не удалось очистить историю. Попробуйте позже."
+            )
     
     async def _handle_message(self, message: Message) -> None:
         """
         Обработчик текстовых сообщений.
         
-        Отправляет сообщение в LLM и возвращает ответ пользователю.
+        Загружает историю диалога, отправляет в LLM и сохраняет обновленную историю.
         
         Args:
             message: Входящее сообщение от пользователя
@@ -107,15 +138,44 @@ class Bot:
                 action=ChatAction.TYPING
             )
             
-            # Получаем ответ от LLM
+            # 1. Загружаем историю диалога
+            history = await self.storage.load_history(user_id)
+            
+            # 2. Если истории нет - добавляем системный промпт
+            if not history:
+                history = [{
+                    "role": "system",
+                    "content": self.config.system_prompt,
+                    "timestamp": datetime.now().isoformat()
+                }]
+                logger.debug(f"User {user_id}: initialized new dialog with system prompt")
+            
+            # 3. Добавляем сообщение пользователя
+            history.append({
+                "role": "user",
+                "content": message.text,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # 4. Получаем ответ от LLM
             response = await self.llm_client.generate_response(
-                user_message=message.text,
+                messages=history,
                 user_id=user_id
             )
             
-            # Отправляем ответ пользователю
+            # 5. Добавляем ответ ассистента в историю
+            history.append({
+                "role": "assistant",
+                "content": response,
+                "timestamp": datetime.now().isoformat()
+            })
+            
+            # 6. Сохраняем обновленную историю
+            await self.storage.save_history(user_id, history)
+            
+            # 7. Отправляем ответ пользователю
             await message.answer(response)
-            logger.debug(f"User {user_id}: LLM response sent ({len(response)} chars)")
+            logger.debug(f"User {user_id}: response sent ({len(response)} chars)")
             
         except LLMAPIError as e:
             logger.error(f"User {user_id}: LLM API error: {e}")

@@ -45,17 +45,15 @@ class LLMClient:
     
     async def generate_response(
         self, 
-        user_message: str,
+        messages: list[dict[str, str]],
         user_id: int
     ) -> str:
         """
-        Генерирует ответ LLM на сообщение пользователя.
-        
-        На данном этапе (Итерация 2) работает БЕЗ истории диалога.
-        История будет добавлена в Итерации 3.
+        Генерирует ответ LLM на основе истории диалога.
         
         Args:
-            user_message: Текст сообщения от пользователя
+            messages: История диалога в формате OpenAI (включая системный промпт)
+                      [{"role": "system"|"user"|"assistant", "content": "..."}]
             user_id: ID пользователя для логирования
             
         Returns:
@@ -64,15 +62,15 @@ class LLMClient:
         Raises:
             LLMAPIError: При ошибке API после всех retry попыток
         """
-        # Формируем простой запрос с системным промптом и одним сообщением
-        messages = [
-            {"role": "system", "content": self.config.system_prompt},
-            {"role": "user", "content": user_message}
+        # Фильтруем сообщения для LLM API (оставляем только role и content)
+        api_messages = [
+            {"role": msg["role"], "content": msg["content"]}
+            for msg in messages
         ]
         
         logger.info(
             f"LLM request for user {user_id}: "
-            f"model={self.config.openrouter_model}, messages=2"
+            f"model={self.config.openrouter_model}, messages={len(api_messages)}"
         )
         
         # Выполняем запрос с retry механизмом
@@ -82,7 +80,7 @@ class LLMClient:
                 
                 response = await self.client.chat.completions.create(
                     model=self.config.openrouter_model,
-                    messages=messages,
+                    messages=api_messages,
                     temperature=self.config.llm_temperature,
                     max_tokens=self.config.llm_max_tokens
                 )
