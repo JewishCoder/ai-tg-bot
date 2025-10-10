@@ -1,0 +1,41 @@
+# Development Dockerfile for AI Telegram Bot
+# Based on Alpine Linux for minimal image size
+
+FROM python:3.11-alpine
+
+# Set labels
+LABEL maintainer="AI Telegram Bot"
+LABEL description="AI-powered Telegram bot with LLM integration"
+
+# Install system dependencies
+RUN apk add --no-cache \
+    gcc \
+    musl-dev \
+    libffi-dev
+
+# Install UV package manager
+RUN pip install --no-cache-dir uv
+
+# Set working directory
+WORKDIR /app
+
+# Copy dependency files
+COPY pyproject.toml uv.lock ./
+
+# Install Python dependencies via UV
+RUN uv sync --frozen --no-dev
+
+# Copy source code
+COPY src/ ./src/
+COPY README.md ./
+
+# Create directories for data and logs
+RUN mkdir -p data logs
+
+# Set environment variables
+ENV PYTHONUNBUFFERED=1
+ENV PYTHONDONTWRITEBYTECODE=1
+
+# Run the bot
+CMD ["uv", "run", "python", "-m", "src.main", "--env-file", ".env.development"]
+
