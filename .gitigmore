@@ -202,3 +202,10 @@ pyrightconfig.json
 .ionide
 
 # End of https://www.toptal.com/developers/gitignore/api/visualstudiocode,dotnetcore,python
+
+.env
+.env.example
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
