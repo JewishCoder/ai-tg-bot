@@ -108,6 +108,62 @@ source .venv/bin/activate  # Linux/Mac
 python -m src.main --env-file .env.development
 ```
 
+---
+
+### 🚀 Production развертывание
+
+Для production окружения используйте Docker с конфигурацией через переменные окружения и named volumes:
+
+**1. Настроить переменные окружения:**
+
+Отредактируй `.build/docker-compose.prod.yml` и укажи свои токены:
+
+```yaml
+environment:
+  - TELEGRAM_TOKEN=your_telegram_bot_token_here
+  - OPENROUTER_API_KEY=your_openrouter_api_key_here
+  # Остальные параметры опциональны
+```
+
+**2. Собрать и запустить:**
+
+**Windows PowerShell:**
+```powershell
+# Сборка образа
+.\.build\build-prod.ps1
+
+# Запуск
+docker-compose -f .build/docker-compose.prod.yml up -d
+```
+
+**Linux/Mac:**
+```bash
+# Сборка
+docker-compose -f .build/docker-compose.prod.yml build
+
+# Запуск
+docker-compose -f .build/docker-compose.prod.yml up -d
+```
+
+**3. Проверить логи:**
+```bash
+docker-compose -f .build/docker-compose.prod.yml logs -f bot
+```
+
+📖 Подробная документация: [.build/DEPLOYMENT.md](.build/DEPLOYMENT.md)
+
+**Преимущества production сборки:**
+- ✅ Секреты через переменные окружения (не попадают в образ)
+- ✅ Named volumes (Docker автоматически управляет правами)
+- ✅ Уменьшенный размер образа (~150-200MB)
+- ✅ Multi-stage build для оптимизации
+- ✅ Non-root пользователь для безопасности
+- ✅ Встроенный healthcheck
+- ✅ Настроенные лимиты ресурсов
+- ✅ Работает на Windows, Linux и в облаке без проблем
+
+---
+
 ## 📋 Команды бота
 
 - `/start` - начать работу с ботом
@@ -147,7 +203,13 @@ ai-tg-bot/
 
 ### Docker
 - [`Dockerfile.dev`](Dockerfile.dev) - Docker образ для разработки
-- [`docker-compose.yml`](docker-compose.yml) - оркестрация контейнеров
+- [`docker-compose.yml`](docker-compose.yml) - оркестрация контейнеров (development)
+- [`.build/`](.build/) - production сборка и развертывание
+  - [`.build/Dockerfile`](.build/Dockerfile) - production-ready multi-stage образ
+  - [`.build/docker-compose.prod.yml`](.build/docker-compose.prod.yml) - production конфигурация с named volumes
+  - [`.build/build-prod.ps1`](.build/build-prod.ps1) - скрипт сборки для Windows PowerShell
+  - [`.build/entrypoint.sh`](.build/entrypoint.sh) - entrypoint скрипт для инициализации контейнера
+  - [`.build/DEPLOYMENT.md`](.build/DEPLOYMENT.md) - руководство по production деплою
 - [`.dockerignore`](.dockerignore) - исключения для Docker
 - [`Makefile`](Makefile) - автоматизация команд
 - [`DOCKER.md`](DOCKER.md) - руководство по использованию Docker
@@ -176,7 +238,8 @@ ai-tg-bot/
 - [Техническое видение](docs/vision.md) - полное описание архитектуры
 - [План разработки](docs/tasklist.md) - дорожная карта проекта
 - [Идея проекта](docs/idea.md) - концепция и цели
-- [Docker руководство](DOCKER.md) - использование Docker
+- [Docker руководство](DOCKER.md) - использование Docker для разработки
+- [Production деплой](.build/DEPLOYMENT.md) - развертывание в production
 
 ## 📄 Лицензия
 

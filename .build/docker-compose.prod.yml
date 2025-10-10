@@ -1,0 +1,81 @@
+# Production Docker Compose configuration with Named Volumes
+# Usage: docker-compose -f .build/docker-compose.prod.yml up -d
+
+services:
+  bot:
+    # Build from local Dockerfile
+    build:
+      context: ..
+      dockerfile: .build/Dockerfile
+    
+    # Or use pre-built image from registry:
+    # image: cr.yandex/crp1nepgdftqcnu309rn/aibotmvp:1.0
+    
+    container_name: ai-tg-bot-prod
+    
+    # Named volumes (Docker управляет правами автоматически)
+    volumes:
+      - bot-data:/app/data              # Dialog history
+      - bot-logs:/app/logs              # Bot logs
+    
+    # Restart policy - always restart on failure
+    restart: always
+    
+    # Environment variables - УКАЖИ СВОИ ЗНАЧЕНИЯ!
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+      
+      # === ОБЯЗАТЕЛЬНЫЕ ПАРАМЕТРЫ ===
+      - TELEGRAM_TOKEN=your_telegram_bot_token_here
+      - OPENROUTER_API_KEY=your_openrouter_api_key_here
+      
+      # === ОПЦИОНАЛЬНЫЕ ПАРАМЕТРЫ ===
+      - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
+      - OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+      - SYSTEM_PROMPT=Ты полезный ассистент. Отвечай на вопросы пользователей четко и по делу.
+      - LLM_TEMPERATURE=0.7
+      - LLM_MAX_TOKENS=1000
+      - MAX_HISTORY_MESSAGES=50
+      - RETRY_ATTEMPTS=3
+      - RETRY_DELAY=1.0
+      - DATA_DIR=data
+      - LOGS_DIR=logs
+      - LOG_LEVEL=INFO
+    
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "5"
+        compress: "true"
+    
+    # Resource limits for production
+    deploy:
+      resources:
+        limits:
+          cpus: '1.0'
+          memory: 512M
+        reservations:
+          cpus: '0.25'
+          memory: 128M
+    
+    # Security options
+    security_opt:
+      - no-new-privileges:true
+    
+    # Health check
+    healthcheck:
+      test: ["CMD", "pgrep", "-f", "python -m src.main"]
+      interval: 60s
+      timeout: 10s
+      start_period: 30s
+      retries: 3
+
+# Named volumes определения
+volumes:
+  bot-data:
+    driver: local
+  bot-logs:
+    driver: local

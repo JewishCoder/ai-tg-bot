@@ -24,8 +24,8 @@ def parse_args() -> argparse.Namespace:
     parser.add_argument(
         "--env-file",
         type=str,
-        default=".env",
-        help="Путь к .env файлу с конфигурацией (по умолчанию: .env)"
+        default=None,
+        help="Путь к .env файлу с конфигурацией (опционально, если не указан - используются переменные окружения)"
     )
     return parser.parse_args()
 
@@ -76,23 +76,24 @@ def setup_logging(config: Config) -> None:
     logging.info("Logging configured successfully")
 
 
-async def main_async(env_file: Path) -> None:
+async def main_async(env_file: Path | None) -> None:
     """
     Асинхронная главная функция.
     
     Args:
-        env_file: Путь к .env файлу
+        env_file: Путь к .env файлу (опционально)
     """
     logger = logging.getLogger(__name__)
     
     # Загрузка конфигурации
     try:
-        # Устанавливаем переменную окружения для pydantic-settings
-        import os
-        os.environ["ENV_FILE"] = str(env_file.absolute())
+        if env_file:
+            config = Config(_env_file=str(env_file.absolute()))
+            logger.info(f"Configuration loaded from {env_file.absolute()}")
+        else:
+            config = Config()
+            logger.info("Configuration loaded from environment variables")
         
-        config = Config(_env_file=str(env_file.absolute()))
-        logger.info(f"Configuration loaded from {env_file.absolute()}")
         logger.info(f"Log level: {config.log_level}")
         logger.info(f"Model: {config.openrouter_model}")
     except Exception as e:
@@ -128,20 +129,26 @@ def main() -> None:
     """Главная функция приложения."""
     args = parse_args()
     
-    # Устанавливаем путь к .env файлу
-    env_file = Path(args.env_file)
-    
-    # Проверка наличия .env файла
-    if not env_file.exists():
-        print(f"ОШИБКА: Файл {env_file} не найден!", file=sys.stderr)
-        print(f"Создайте .env файл на основе .env.example", file=sys.stderr)
-        sys.exit(1)
+    # Определяем путь к .env файлу (если указан)
+    env_file = None
+    if args.env_file:
+        env_file = Path(args.env_file)
+        if not env_file.exists():
+            print(f"ОШИБКА: Файл {env_file} не найден!", file=sys.stderr)
+            print(f"Создайте .env файл на основе .env.example", file=sys.stderr)
+            sys.exit(1)
     
     # Загрузка конфигурации для настройки логирования
     try:
-        config = Config(_env_file=str(env_file.absolute()))
+        if env_file:
+            config = Config(_env_file=str(env_file.absolute()))
+        else:
+            config = Config()
     except Exception as e:
         print(f"ОШИБКА: Не удалось загрузить конфигурацию: {e}", file=sys.stderr)
+        if not env_file:
+            print(f"Подсказка: Убедитесь, что все необходимые переменные окружения установлены", file=sys.stderr)
+            print(f"Обязательные: TELEGRAM_TOKEN, OPENROUTER_API_KEY", file=sys.stderr)
         sys.exit(1)
     
     # Настройка логирования
