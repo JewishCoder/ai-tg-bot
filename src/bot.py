@@ -43,6 +43,8 @@ class Bot:
         """Регистрация обработчиков команд и сообщений."""
         self.dp.message.register(self._handle_start, Command("start"))
         self.dp.message.register(self._handle_help, Command("help"))
+        self.dp.message.register(self._handle_role, Command("role"))
+        self.dp.message.register(self._handle_status, Command("status"))
         self.dp.message.register(self._handle_reset, Command("reset"))
         self.dp.message.register(self._handle_message)
         logger.info("Handlers registered")
@@ -64,6 +66,9 @@ class Bot:
             "Доступные команды:\n"
             "/start - начать работу с ботом\n"
             "/help - показать список команд\n"
+            "/role <промпт> - установить роль ассистента\n"
+            "/role default - вернуться к роли по умолчанию\n"
+            "/status - показать статус и статистику\n"
             "/reset - очистить историю диалога\n\n"
             "Просто отправь мне сообщение, и я отвечу!"
         )
@@ -84,6 +89,9 @@ class Bot:
             "📚 Доступные команды:\n\n"
             "/start - начать работу с ботом\n"
             "/help - показать эту справку\n"
+            "/role <промпт> - установить роль ассистента\n"
+            "/role default - вернуться к роли по умолчанию\n"
+            "/status - показать статус и статистику\n"
             "/reset - очистить историю диалога\n\n"
             "💬 Просто отправь мне любое текстовое сообщение, и я отвечу!\n"
             "Я запоминаю контекст разговора для более точных ответов."
@@ -91,11 +99,173 @@ class Bot:
         
         await message.answer(help_text)
     
+    async def _handle_role(self, message: Message) -> None:
+        """
+        Обработчик команды /role.
+        
+        Устанавливает кастомную роль ассистента или возвращает к роли по умолчанию.
+        
+        Использование:
+        - /role <текст> - установить кастомную роль
+        - /role default - вернуться к роли по умолчанию
+        
+        Args:
+            message: Входящее сообщение от пользователя
+        """
+        user_id = message.from_user.id if message.from_user else 0
+        logger.info(f"User {user_id}: /role command")
+        
+        # Извлекаем аргументы команды
+        if not message.text:
+            await message.answer(
+                "❌ Неправильное использование команды!\n\n"
+                "Используйте:\n"
+                "• /role <текст> — установить кастомную роль\n"
+                "• /role default — вернуться к роли по умолчанию\n\n"
+                "Пример:\n"
+                "/role Ты опытный Python разработчик. Помогаешь с кодом и архитектурой."
+            )
+            return
+        
+        # Убираем команду из текста
+        args = message.text.split(maxsplit=1)
+        
+        if len(args) < 2:
+            await message.answer(
+                "❌ Неправильное использование команды!\n\n"
+                "Используйте:\n"
+                "• /role <текст> — установить кастомную роль\n"
+                "• /role default — вернуться к роли по умолчанию\n\n"
+                "Пример:\n"
+                "/role Ты опытный Python разработчик. Помогаешь с кодом и архитектурой."
+            )
+            return
+        
+        role_text = args[1].strip()
+        
+        try:
+            # Показываем индикатор обработки
+            await self.bot.send_chat_action(
+                chat_id=message.chat.id,
+                action=ChatAction.TYPING
+            )
+            
+            # Проверяем - default или кастомный промпт
+            if role_text.lower() == "default":
+                system_prompt = self.config.system_prompt
+                await self.storage.set_system_prompt(user_id, system_prompt)
+                
+                # Показываем первые 100 символов
+                prompt_preview = system_prompt[:100]
+                if len(system_prompt) > 100:
+                    prompt_preview += "..."
+                
+                await message.answer(
+                    "✅ Роль успешно изменена!\n\n"
+                    "🔄 Установлена роль по умолчанию\n"
+                    "🗑️ История диалога очищена\n\n"
+                    f"📝 Новая роль:\n{prompt_preview}"
+                )
+                logger.info(f"User {user_id}: role reset to default")
+            else:
+                # Устанавливаем кастомный промпт
+                await self.storage.set_system_prompt(user_id, role_text)
+                
+                # Показываем первые 100 символов
+                prompt_preview = role_text[:100]
+                if len(role_text) > 100:
+                    prompt_preview += "..."
+                
+                await message.answer(
+                    "✅ Роль успешно изменена!\n\n"
+                    "🎭 Установлена кастомная роль\n"
+                    "🗑️ История диалога очищена\n\n"
+                    f"📝 Новая роль:\n{prompt_preview}"
+                )
+                logger.info(f"User {user_id}: custom role set ({len(role_text)} chars)")
+            
+        except Exception as e:
+            logger.error(f"User {user_id}: Failed to set role: {e}", exc_info=True)
+            await message.answer(
+                "❌ Не удалось изменить роль!\n\n"
+                "⚠️ Произошла ошибка при сохранении. Попробуйте позже или обратитесь к администратору."
+            )
+    
+    async def _handle_status(self, message: Message) -> None:
+        """
+        Обработчик команды /status.
+        
+        Показывает статистику диалога:
+        - Количество сообщений в истории
+        - Текущий системный промпт (первые 100 символов)
+        - Дата последнего обновления
+        - Используемая модель LLM
+        
+        Args:
+            message: Входящее сообщение от пользователя
+        """
+        user_id = message.from_user.id if message.from_user else 0
+        logger.info(f"User {user_id}: /status command")
+        
+        try:
+            # Показываем индикатор обработки
+            await self.bot.send_chat_action(
+                chat_id=message.chat.id,
+                action=ChatAction.TYPING
+            )
+            
+            # Получаем информацию о диалоге
+            dialog_info = await self.storage.get_dialog_info(user_id)
+            
+            messages_count = dialog_info["messages_count"]
+            system_prompt = dialog_info["system_prompt"]
+            updated_at = dialog_info["updated_at"]
+            
+            # Определяем текущий системный промпт
+            if system_prompt:
+                prompt_preview = system_prompt[:100]
+                if len(system_prompt) > 100:
+                    prompt_preview += "..."
+                role_type = "🎭 Кастомная роль"
+            else:
+                prompt_preview = self.config.system_prompt[:100]
+                if len(self.config.system_prompt) > 100:
+                    prompt_preview += "..."
+                role_type = "🔄 Роль по умолчанию"
+            
+            # Форматируем дату
+            if updated_at:
+                # Парсим ISO формат и форматируем читаемо
+                from datetime import datetime
+                dt = datetime.fromisoformat(updated_at)
+                updated_str = dt.strftime("%Y-%m-%d %H:%M:%S")
+            else:
+                updated_str = "Нет данных"
+            
+            status_text = (
+                f"📊 Статус вашего диалога\n\n"
+                f"💬 Сообщений в истории: {messages_count}\n"
+                f"🎭 Тип роли: {role_type}\n"
+                f"🤖 Модель: {self.config.openrouter_model}\n"
+                f"📅 Последнее обновление: {updated_str}\n\n"
+                f"📝 Текущая роль:\n{prompt_preview}"
+            )
+            
+            await message.answer(status_text)
+            logger.info(f"User {user_id}: status sent")
+            
+        except Exception as e:
+            logger.error(f"User {user_id}: Failed to get status: {e}", exc_info=True)
+            await message.answer(
+                "❌ Не удалось получить статус!\n\n"
+                "⚠️ Произошла ошибка при загрузке данных. Попробуйте позже."
+            )
+    
     async def _handle_reset(self, message: Message) -> None:
         """
         Обработчик команды /reset.
         
-        Очищает историю диалога пользователя.
+        Очищает историю диалога пользователя, сохраняя текущий системный промпт.
         
         Args:
             message: Входящее сообщение от пользователя
@@ -104,15 +274,41 @@ class Bot:
         logger.info(f"User {user_id}: /reset command")
         
         try:
-            await self.storage.clear_history(user_id)
-            await message.answer(
-                "🔄 История диалога очищена.\n"
-                "Начинаем с чистого листа!"
+            # Показываем индикатор обработки
+            await self.bot.send_chat_action(
+                chat_id=message.chat.id,
+                action=ChatAction.TYPING
             )
-        except Exception as e:
-            logger.error(f"User {user_id}: Failed to clear history: {e}", exc_info=True)
+            
+            # Получаем текущий системный промпт перед очисткой
+            custom_prompt = await self.storage.get_system_prompt(user_id)
+            
+            # Определяем какой промпт использовать
+            if custom_prompt:
+                system_prompt = custom_prompt
+                role_type = "🎭 Кастомная роль"
+                role_status = "сохранена"
+            else:
+                system_prompt = self.config.system_prompt
+                role_type = "🔄 Роль по умолчанию"
+                role_status = "сохранена"
+            
+            # Устанавливаем промпт заново (это очистит историю)
+            await self.storage.set_system_prompt(user_id, system_prompt)
+            
             await message.answer(
-                "⚠️ Не удалось очистить историю. Попробуйте позже."
+                "✅ История успешно очищена!\n\n"
+                f"🗑️ Все сообщения удалены\n"
+                f"{role_type} {role_status}\n\n"
+                "Начинаем диалог с чистого листа!"
+            )
+            logger.info(f"User {user_id}: history reset, role preserved")
+            
+        except Exception as e:
+            logger.error(f"User {user_id}: Failed to reset history: {e}", exc_info=True)
+            await message.answer(
+                "❌ Не удалось очистить историю!\n\n"
+                "⚠️ Произошла ошибка при сохранении. Попробуйте позже."
             )
     
     async def _handle_message(self, message: Message) -> None:
@@ -141,14 +337,27 @@ class Bot:
             # 1. Загружаем историю диалога
             history = await self.storage.load_history(user_id)
             
-            # 2. Если истории нет - добавляем системный промпт
+            # 2. Если истории нет - инициализируем новый диалог с системным промптом
             if not history:
+                # Загружаем кастомный промпт (если есть) или используем default
+                custom_prompt = await self.storage.get_system_prompt(user_id)
+                system_prompt = custom_prompt if custom_prompt else self.config.system_prompt
+                
+                # Создаём новый диалог с системным промптом
                 history = [{
                     "role": "system",
-                    "content": self.config.system_prompt,
+                    "content": system_prompt,
                     "timestamp": datetime.now().isoformat()
                 }]
-                logger.debug(f"User {user_id}: initialized new dialog with system prompt")
+                
+                # Сохраняем системный промпт в Storage для нового пользователя
+                if not custom_prompt:
+                    await self.storage.set_system_prompt(user_id, system_prompt)
+                
+                logger.debug(
+                    f"User {user_id}: initialized new dialog with "
+                    f"{'custom' if custom_prompt else 'default'} system prompt"
+                )
             
             # 3. Добавляем сообщение пользователя
             history.append({
