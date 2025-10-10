@@ -4,8 +4,10 @@ import logging
 from aiogram import Bot as AiogramBot, Dispatcher
 from aiogram.filters import Command
 from aiogram.types import Message
+from aiogram.enums import ChatAction
 
 from src.config import Config
+from src.llm_client import LLMClient, LLMAPIError
 
 logger = logging.getLogger(__name__)
 
@@ -30,6 +32,7 @@ class Bot:
         self.config = config
         self.bot = AiogramBot(token=config.telegram_token)
         self.dp = Dispatcher()
+        self.llm_client = LLMClient(config)
         self._register_handlers()
         logger.info("Bot initialized")
     
@@ -37,7 +40,7 @@ class Bot:
         """Регистрация обработчиков команд и сообщений."""
         self.dp.message.register(self._handle_start, Command("start"))
         self.dp.message.register(self._handle_help, Command("help"))
-        self.dp.message.register(self._handle_echo)
+        self.dp.message.register(self._handle_message)
         logger.info("Handlers registered")
     
     async def _handle_start(self, message: Message) -> None:
@@ -53,7 +56,7 @@ class Bot:
         welcome_text = (
             "👋 Привет! Я AI-ассистент на базе LLM.\n\n"
             "Я могу отвечать на твои вопросы и поддерживать диалог.\n"
-            "Пока что я работаю в режиме эхо - просто повторяю твои сообщения.\n\n"
+            "Задавай любые вопросы, и я постараюсь помочь!\n\n"
             "Доступные команды:\n"
             "/start - начать работу с ботом\n"
             "/help - показать список команд\n\n"
@@ -81,11 +84,11 @@ class Bot:
         
         await message.answer(help_text)
     
-    async def _handle_echo(self, message: Message) -> None:
+    async def _handle_message(self, message: Message) -> None:
         """
-        Эхо-обработчик для текстовых сообщений.
+        Обработчик текстовых сообщений.
         
-        Отправляет пользователю тот же текст, что получил.
+        Отправляет сообщение в LLM и возвращает ответ пользователю.
         
         Args:
             message: Входящее сообщение от пользователя
@@ -93,12 +96,60 @@ class Bot:
         if not message.text:
             return
         
-        user_id = message.from_user.id if message.from_user else "unknown"
+        user_id = message.from_user.id if message.from_user else 0
         text_length = len(message.text)
         logger.info(f"User {user_id}: received message ({text_length} chars)")
         
-        await message.answer(message.text)
-        logger.debug(f"User {user_id}: echo response sent")
+        try:
+            # Показываем индикатор "печатает..."
+            await self.bot.send_chat_action(
+                chat_id=message.chat.id,
+                action=ChatAction.TYPING
+            )
+            
+            # Получаем ответ от LLM
+            response = await self.llm_client.generate_response(
+                user_message=message.text,
+                user_id=user_id
+            )
+            
+            # Отправляем ответ пользователю
+            await message.answer(response)
+            logger.debug(f"User {user_id}: LLM response sent ({len(response)} chars)")
+            
+        except LLMAPIError as e:
+            logger.error(f"User {user_id}: LLM API error: {e}")
+            
+            # Отправляем понятное сообщение об ошибке
+            error_message = self._get_error_message(str(e))
+            await message.answer(error_message)
+            
+        except Exception as e:
+            logger.error(f"User {user_id}: Unexpected error: {e}", exc_info=True)
+            await message.answer(
+                "⚠️ Произошла ошибка при обработке запроса. Попробуйте позже."
+            )
+    
+    def _get_error_message(self, error: str) -> str:
+        """
+        Получает понятное пользователю сообщение об ошибке.
+        
+        Args:
+            error: Текст ошибки
+            
+        Returns:
+            Сообщение для пользователя
+        """
+        error_lower = error.lower()
+        
+        if "rate limit" in error_lower:
+            return "⏳ Превышен лимит запросов. Попробуйте через минуту."
+        elif "timeout" in error_lower:
+            return "⏱️ Запрос к LLM занял слишком много времени. Попробуйте ещё раз."
+        elif "connection" in error_lower:
+            return "🔌 Проблема с подключением к LLM. Попробуйте позже."
+        else:
+            return "❌ Не удалось получить ответ от LLM. Попробуйте позже."
     
     async def start(self) -> None:
         """Запуск бота в режиме polling."""
