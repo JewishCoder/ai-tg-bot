@@ -1,6 +1,6 @@
 # AI Telegram Bot
 
-[![CI](https://github.com/YOUR_USERNAME/ai-tg-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/YOUR_USERNAME/ai-tg-bot/actions/workflows/ci.yml)
+[![CI](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci.yml)
 
 LLM-ассистент в виде Telegram-бота с использованием OpenRouter API.
 
