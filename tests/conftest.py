@@ -124,3 +124,101 @@ def sample_messages() -> list[dict[str, str]]:
             "timestamp": "2024-01-01T00:00:02.000000+00:00",
         },
     ]
+
+
+@pytest.fixture
+def mock_user() -> AsyncMock:
+    """
+    Создаёт mock User объект для тестов handlers.
+
+    Returns:
+        AsyncMock объект пользователя Telegram
+    """
+    user = AsyncMock()
+    user.id = 12345
+    user.first_name = "Test User"
+    user.username = "testuser"
+    return user
+
+
+@pytest.fixture
+def mock_chat() -> AsyncMock:
+    """
+    Создаёт mock Chat объект для тестов handlers.
+
+    Returns:
+        AsyncMock объект чата Telegram
+    """
+    chat = AsyncMock()
+    chat.id = 12345
+    chat.type = "private"
+    return chat
+
+
+@pytest.fixture
+def mock_message(mock_user: AsyncMock, mock_chat: AsyncMock) -> AsyncMock:
+    """
+    Создаёт mock Message объект для тестов handlers.
+
+    Args:
+        mock_user: Mock пользователя
+        mock_chat: Mock чата
+
+    Returns:
+        AsyncMock объект сообщения Telegram
+    """
+    message = AsyncMock()
+    message.from_user = mock_user
+    message.chat = mock_chat
+    message.text = "/test"
+    message.answer = AsyncMock()
+    return message
+
+
+@pytest.fixture
+def mock_bot() -> AsyncMock:
+    """
+    Создаёт mock Bot объект для тестов handlers.
+
+    Returns:
+        AsyncMock объект бота Telegram
+    """
+    bot = AsyncMock()
+    bot.send_chat_action = AsyncMock()
+    return bot
+
+
+@pytest.fixture
+def mock_llm_client() -> AsyncMock:
+    """
+    Создаёт mock LLMClient для тестов handlers.
+
+    Returns:
+        AsyncMock объект LLMClient
+    """
+    client = AsyncMock()
+    client.generate_response = AsyncMock(return_value="Mock LLM response")
+    return client
+
+
+@pytest.fixture
+def mock_storage() -> AsyncMock:
+    """
+    Создаёт mock Storage для тестов handlers.
+
+    Returns:
+        AsyncMock объект Storage
+    """
+    storage = AsyncMock()
+    storage.load_history = AsyncMock(return_value=[])
+    storage.save_history = AsyncMock()
+    storage.get_system_prompt = AsyncMock(return_value=None)
+    storage.set_system_prompt = AsyncMock()
+    storage.get_dialog_info = AsyncMock(
+        return_value={
+            "messages_count": 0,
+            "system_prompt": None,
+            "updated_at": None,
+        }
+    )
+    return storage
