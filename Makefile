@@ -1,4 +1,4 @@
-.PHONY: help install run docker-build docker-up docker-down docker-logs docker-restart clean test
+.PHONY: help install run docker-build docker-up docker-down docker-logs docker-restart clean test lint format pre-commit-install ci
 
 # Colors for output (works in some terminals)
 BLUE := \033[0;34m
@@ -42,6 +42,23 @@ run:
 test:
 	@echo "Running tests..."
 	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run pytest tests/"
+
+lint:
+	@echo "Running linter and type checker..."
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run ruff check src/ tests/"
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run mypy src/"
+
+format:
+	@echo "Formatting code..."
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run ruff format src/ tests/"
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run ruff check --fix src/ tests/"
+
+pre-commit-install:
+	@echo "Installing pre-commit hooks..."
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run pre-commit install"
+
+ci: format lint
+	@echo "CI checks passed!"
 
 # ===== Docker Commands =====
 
