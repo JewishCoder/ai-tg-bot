@@ -1,7 +1,6 @@
 ---
-alwaysApply: true
+alwaysApply: false
 ---
-
 # Правила разработки для Code Ассистента
 
 Полное техническое видение проекта: [@docs/vision.md](vision.md)
@@ -128,6 +127,229 @@ alwaysApply: true
 - Без секретов в коде и git
 - Поддержка `--env-file` аргумента
 
+## Качество кода
+
+### Форматирование
+
+**Инструмент: Ruff**
+- Максимальная длина строки: 100 символов
+- Автоматическое форматирование через `make format`
+- Сортировка импортов
+- Удаление неиспользуемых импортов
+
+### Линтинг
+
+**Инструмент: Ruff**
+- Проверка на PEP 8 нарушения
+- Поиск потенциальных багов
+- Выявление неиспользуемых переменных
+- Проверка сложности кода
+- Запуск через `make lint`
+
+**Правила линтера:**
+- E, F - базовые ошибки и синтаксис
+- I - импорты
+- N - именование
+- W - предупреждения
+- UP - upgrade синтаксис (modern Python)
+- B - потенциальные баги
+- A - shadowing built-ins
+- C4 - comprehensions
+- DTZ - datetime
+- T20 - print statements
+- RET - return statements
+- SIM - simplifications
+- ARG - unused arguments
+
+### Статическая проверка типов
+
+**Инструмент: Mypy**
+- Строгий режим (`strict = true`)
+- Проверка всех типов
+- Нет `Any` без необходимости
+- Проверка через `make lint`
+
+### Pre-commit hooks
+
+**Автоматическая проверка перед коммитом:**
+- Форматирование кода (ruff format)
+- Линтинг (ruff check)
+- Проверка типов (mypy)
+- Установка: `make pre-commit-install`
+
+## Тестирование
+
+### Обязательные требования
+
+- Unit-тесты для всей критической логики
+- Минимальное покрытие: **70%** для Storage и LLMClient
+- Async тесты через pytest-asyncio
+- Фикстуры в `tests/conftest.py`
+
+### Структура тестов
+
+```
+tests/
+├── __init__.py
+├── conftest.py          # Общие фикстуры
+├── test_storage.py      # Тесты Storage
+├── test_llm_client.py   # Тесты LLMClient
+└── test_handlers.py     # Тесты handlers (после рефакторинга)
+```
+
+### Запуск тестов
+
+```powershell
+# С coverage отчетом
+make test
+
+# Быстрый запуск без coverage
+make test-fast
+
+# Конкретный файл
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest tests/test_storage.py -v
+```
+
+### Что тестируем
+
+✅ **Обязательно:**
+- Storage: загрузка/сохранение, лимиты, промпты
+- LLMClient: успешные запросы, retry, ошибки
+- Utils: разбивка сообщений, форматирование ошибок
+
+✅ **Желательно:**
+- Handlers: обработка команд
+- Config: валидация настроек
+
+❌ **Не тестируем:**
+- Внешние API (используем моки)
+- Telegram Bot API (используем моки)
+
+## Best Practices Python
+
+### 1. Async/Await правильно
+
+✅ **Правильно:**
+```python
+# Нативный async I/O
+import aiofiles
+
+async def save_data(path: Path, data: dict) -> None:
+    async with aiofiles.open(path, "w") as f:
+        await f.write(json.dumps(data))
+```
+
+❌ **Неправильно:**
+```python
+# Блокирующий I/O через run_in_executor
+def _save_sync(path, data):
+    with open(path, "w") as f:
+        json.dump(data, f)
+
+async def save_data(path, data):
+    loop = asyncio.get_event_loop()
+    await loop.run_in_executor(None, self._save_sync, path, data)
+```
+
+### 2. DRY (Don't Repeat Yourself)
+
+Избегайте повторяющегося кода:
+- Вынесите общую логику в функции
+- Используйте декораторы для повторяющихся паттернов
+- Создавайте утилиты для часто используемых операций
+
+### 3. SOLID принципы
+
+**S - Single Responsibility:**
+- Один класс/функция = одна задача
+- Пример: `Storage` только для работы с файлами, `LLMClient` только для LLM API
+
+**O - Open/Closed:**
+- Открыт для расширения, закрыт для модификации
+- Используйте наследование и композицию
+
+**L - Liskov Substitution:**
+- Подклассы должны быть заменяемы на базовые классы
+- Соблюдайте контракты интерфейсов
+
+**I - Interface Segregation:**
+- Маленькие специфичные интерфейсы вместо больших
+- Клиент не должен зависеть от ненужных методов
+
+**D - Dependency Inversion:**
+- Зависимость от абстракций, а не от конкретики
+- Передавайте зависимости через параметры
+
+### 4. Error Handling
+
+```python
+# Специфичные исключения
+class LLMAPIError(Exception):
+    """Исключение для ошибок LLM API."""
+    pass
+
+# Явная обработка
+try:
+    response = await llm_client.generate_response(messages, user_id)
+except LLMAPIError as e:
+    logger.error(f"LLM API error: {e}")
+    await message.answer("⚠️ Ошибка при обращении к LLM")
+except Exception as e:
+    logger.error(f"Unexpected error: {e}", exc_info=True)
+    await message.answer("⚠️ Неожиданная ошибка")
+```
+
+### 5. Контекстные менеджеры
+
+Всегда используйте context managers для ресурсов:
+
+```python
+# Файлы
+async with aiofiles.open(path, "r") as f:
+    content = await f.read()
+
+# HTTP сессии
+async with aiohttp.ClientSession() as session:
+    async with session.get(url) as response:
+        data = await response.json()
+```
+
+### 6. List/Dict Comprehensions
+
+Используйте comprehensions вместо циклов где возможно:
+
+```python
+# ✅ Правильно
+api_messages = [
+    {"role": msg["role"], "content": msg["content"]}
+    for msg in messages
+]
+
+# ❌ Неправильно
+api_messages = []
+for msg in messages:
+    api_messages.append({"role": msg["role"], "content": msg["content"]})
+```
+
+### 7. Современный Python синтаксис
+
+```python
+# Type hints с new-style syntax (Python 3.10+)
+def process(items: list[str]) -> dict[str, int]:
+    ...
+
+# Pattern matching (Python 3.10+)
+match status:
+    case "success":
+        handle_success()
+    case "error":
+        handle_error()
+
+# Walrus operator
+if (value := get_value()) is not None:
+    process(value)
+```
+
 ## Что НЕ делать
 
 - ❌ Оверинжиниринг и избыточная абстракция
@@ -137,6 +359,11 @@ alwaysApply: true
 - ❌ Неявная обработка ошибок
 - ❌ Код без type hints
 - ❌ Публичные методы без docstrings
+- ❌ Коммиты без прохождения линтера
+- ❌ Код без тестов для критической логики
+- ❌ Использование `print()` вместо `logging`
+- ❌ Игнорирование предупреждений mypy
+- ❌ Захардкоженные значения вместо конфигурации
 
 ## Примеры
 
