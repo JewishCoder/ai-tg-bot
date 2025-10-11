@@ -1,0 +1,366 @@
+---
+alwaysApply: true
+---
+# QA Conventions: TDD и тестирование
+
+## Философия тестирования
+
+**Принципы:**
+- **TDD**: тесты перед реализацией (Red → Green → Refactor)
+- **KISS**: простые тесты, понятные с первого взгляда
+- **DRY**: переиспользование фикстур, без дублирования setup-логики
+- **Только важное**: тестируем бизнес-логику, не boilerplate
+
+## Работа с UV для тестирования
+
+### ⚠️ Важно для Windows!
+
+**Все команды тестирования через `uv` выполняются через полный путь:**
+
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe"
+```
+
+### Команды для тестирования
+
+**Запуск всех тестов с coverage:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest --cov=src --cov-report=html --cov-report=term -v
+```
+
+**Быстрый запуск тестов без coverage:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest -v
+```
+
+**Запуск конкретного теста:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest tests/test_storage.py -v
+```
+
+**Запуск конкретного test case:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest tests/test_storage.py::TestStorage::test_save_and_load_history -v
+```
+
+**Запуск с подробным выводом:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" run pytest -vv -s
+```
+
+**Использование через Makefile (рекомендуется):**
+```powershell
+make test       # полный запуск с coverage
+make test-fast  # быстрый запуск
+```
+
+### Установка dev-зависимостей
+
+**При первой настройке окружения:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" sync --all-extras
+```
+
+**Добавление новой test-библиотеки:**
+```powershell
+& "$env:USERPROFILE\.local\bin\uv.exe" add --dev pytest-mock
+```
+
+## Что тестируем
+
+### ✅ Обязательно
+- **Бизнес-логика**: Storage, LLMClient, utils
+- **Критические пути**: сохранение/загрузка данных, retry механизмы, обработка ошибок
+- **Граничные случаи**: пустые значения, лимиты, edge cases
+- **Публичные API**: все public методы с type hints
+
+### ❌ Не тестируем
+- Внешние API (используем моки)
+- Telegram Bot API (используем моки)
+- Getters/setters без логики
+- Trivial code (простые присваивания)
+- Init-методы без логики
+- Private методы напрямую (тестируются через public API)
+
+## TDD workflow
+
+### 1. Red: пишем тест
+```python
+@pytest.mark.asyncio
+async def test_feature_name() -> None:
+    """Тест: краткое описание what, not how."""
+    # Arrange
+    storage = Storage(config)
+    
+    # Act
+    result = await storage.method(params)
+    
+    # Assert
+    assert result == expected
+```
+
+### 2. Green: минимальная реализация
+Пишем код, который проходит тест (не больше)
+
+### 3. Refactor: улучшаем код
+После прохождения теста - рефакторинг с проверкой тестов
+
+## Структура тестов
+
+### Naming convention
+```python
+# test_<module_name>.py
+class Test<ClassName>:  # для классов
+    async def test_<method>_<scenario>(self) -> None:
+
+# Для функций без класса
+async def test_<function_name>_<scenario>() -> None:
+```
+
+### Docstring формат
+```python
+"""Тест: <что проверяем одной строкой>."""
+# Без лишних деталей, только суть
+```
+
+### Arrange-Act-Assert
+```python
+# Arrange: подготовка данных
+storage = Storage(config)
+messages = [{"role": "user", "content": "test"}]
+
+# Act: выполнение действия
+result = await storage.save_history(user_id, messages)
+
+# Assert: проверка результата
+assert result is not None
+assert len(loaded_messages) == 1
+```
+
+## Fixtures (conftest.py)
+
+### Переиспользование
+- Общие фикстуры в `tests/conftest.py`
+- Специфичные в отдельных test-файлах
+- Именование: `mock_*`, `test_*`, `sample_*`
+
+### Примеры
+```python
+@pytest.fixture
+def test_config(temp_data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Config:
+    """Тестовая конфигурация."""
+    monkeypatch.setenv("KEY", "value")
+    return Config()
+
+@pytest.fixture
+def mock_client() -> AsyncMock:
+    """Mock внешнего клиента."""
+    mock = AsyncMock()
+    mock.method.return_value = expected_value
+    return mock
+```
+
+## Моки и зависимости
+
+### Async моки
+```python
+from unittest.mock import AsyncMock
+
+mock_client = AsyncMock()
+mock_client.method.return_value = "result"
+# или
+mock_client.method.side_effect = [error, success]  # retry сценарий
+```
+
+### Что мокируем
+- Внешние HTTP запросы (OpenAI API, OpenRouter)
+- Telegram Bot API вызовы
+- File I/O (опционально, если не тестируем Storage)
+
+### Что НЕ мокируем
+- Внутреннюю логику проекта
+- Простые data structures
+- Pydantic модели
+
+## Тестирование ошибок
+
+### Exception handling
+```python
+# Проверка что исключение выбрасывается
+with pytest.raises(LLMAPIError) as exc_info:
+    await client.generate_response(messages, user_id)
+
+assert "expected error text" in str(exc_info.value)
+```
+
+### Retry механизмы
+```python
+# Первая попытка - ошибка, вторая - успех
+mock.side_effect = [
+    RateLimitError("Rate limit", response=mock_resp, body=None),
+    success_result,
+]
+
+result = await client.method()
+assert mock.call_count == 2  # проверяем retry
+```
+
+## Coverage требования
+
+### Минимальные пороги
+- **Критическая логика**: >= 70% (Storage, LLMClient, utils)
+- **Handlers**: >= 50% (сложно тестировать aiogram)
+- **Main/Bot init**: исключены из coverage (см. `pyproject.toml`)
+
+### Запуск
+```bash
+make test        # с coverage
+make test-fast   # без coverage, быстрее
+```
+
+### Проверка coverage
+```bash
+# Смотрим отчёт
+htmlcov/index.html
+```
+
+## Async тестирование
+
+### pytest-asyncio
+```python
+# Авто-режим в pyproject.toml: asyncio_mode = "auto"
+
+@pytest.mark.asyncio
+async def test_async_method() -> None:
+    result = await async_function()
+    assert result == expected
+```
+
+### Async fixtures
+```python
+@pytest.fixture
+async def async_resource() -> AsyncGenerator[Resource, None]:
+    resource = await create_resource()
+    yield resource
+    await resource.cleanup()
+```
+
+## Best Practices
+
+### 1. Тестируй поведение, не реализацию
+```python
+# ✅ Хорошо
+assert len(messages) == expected_count
+assert messages[0]["role"] == "system"
+
+# ❌ Плохо
+assert storage._internal_cache is not None  # тестируем детали реализации
+```
+
+### 2. Один тест = один сценарий
+```python
+# ✅ Хорошо
+async def test_save_history_creates_file() -> None: ...
+async def test_save_history_respects_limit() -> None: ...
+
+# ❌ Плохо
+async def test_save_history() -> None:
+    # проверяем и создание файла, и лимит, и еще 5 вещей
+```
+
+### 3. Читаемые assert
+```python
+# ✅ Хорошо
+assert result == expected_value
+
+# ❌ Плохо
+assert result  # что именно проверяем?
+```
+
+### 4. Независимые тесты
+Каждый тест работает изолированно:
+- Не зависит от порядка выполнения
+- Не использует shared state между тестами
+- Использует `temp_data_dir` для файлов
+
+### 5. Минимум setup
+```python
+# ✅ Хорошо: используем фикстуры
+async def test_method(test_config: Config) -> None:
+    storage = Storage(test_config)
+
+# ❌ Плохо: дублируем setup в каждом тесте
+async def test_method() -> None:
+    config = Config()
+    config.data_dir = "/tmp/test"
+    ...  # 10 строк setup
+```
+
+## Что НЕ делать
+
+- ❌ Тесты с sleep() - используй моки
+- ❌ Тесты зависящие от внешних сервисов
+- ❌ Тесты более 50 строк - разбей на несколько
+- ❌ Копипаста setup кода - используй фикстуры
+- ❌ Тесты без docstring
+- ❌ Проверка приватных методов напрямую
+- ❌ Магические числа без объяснения
+- ❌ Тесты без assert (просто вызов функции)
+
+## Примеры
+
+### ✅ Хороший тест
+```python
+@pytest.mark.asyncio
+async def test_load_history_empty_user(test_config: Config) -> None:
+    """Тест: загрузка истории для нового пользователя возвращает пустой список."""
+    storage = Storage(test_config)
+    
+    history = await storage.load_history(user_id=12345)
+    
+    assert history == []
+```
+
+### ❌ Плохой тест
+```python
+def test_stuff():  # no async, no types, bad name
+    s = Storage(Config())  # no fixture, hardcoded Config
+    h = s.load_history(123)  # no await!
+    assert h  # что проверяем?
+```
+
+## Интеграционные тесты
+
+### Scope
+Тестируем взаимодействие компонентов:
+```python
+@pytest.mark.asyncio
+async def test_handler_with_storage_and_llm(
+    mock_message: AsyncMock,
+    mock_storage: AsyncMock,
+    mock_llm_client: AsyncMock,
+) -> None:
+    """Тест: полный флоу обработки сообщения."""
+    # Setup моков для взаимодействия
+    mock_storage.load_history.return_value = []
+    mock_llm_client.generate_response.return_value = "Response"
+    
+    # Act: вызываем handler
+    await handle_message(mock_message)
+    
+    # Assert: проверяем что все компоненты вызвались
+    mock_storage.load_history.assert_called_once()
+    mock_llm_client.generate_response.assert_called_once()
+    mock_message.answer.assert_called_once()
+```
+
+## Pre-commit
+Перед коммитом автоматически:
+```bash
+make test  # все тесты должны пройти
+make lint  # без ошибок
+```
+
+---
+
+**Помни:** Тесты - это документация поведения. Если тест непонятен - переписать!
