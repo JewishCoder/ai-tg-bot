@@ -6,6 +6,8 @@ from datetime import UTC, datetime
 from pathlib import Path
 from typing import Any
 
+import aiofiles
+
 from src.config import Config
 
 logger = logging.getLogger(__name__)
@@ -68,11 +70,10 @@ class Storage:
             return []
 
         try:
-            # Читаем файл асинхронно через asyncio
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, self._read_json_file, file_path)
+            # Читаем файл асинхронно через aiofiles
+            async with aiofiles.open(file_path, encoding="utf-8") as f:
+                content = await f.read()
+                data = json.loads(content)
 
             messages: list[dict[str, str]] = data.get("messages", [])
             logger.info(f"User {user_id}: loaded history with {len(messages)} messages")
@@ -86,20 +87,6 @@ class Storage:
                 f"User {user_id}: failed to load history from {file_path}: {e}", exc_info=True
             )
             return []
-
-    def _read_json_file(self, file_path: Path) -> dict[str, Any]:
-        """
-        Синхронное чтение JSON файла.
-
-        Args:
-            file_path: Путь к JSON файлу
-
-        Returns:
-            Данные из JSON файла
-        """
-        with open(file_path, encoding="utf-8") as f:
-            result: dict[str, Any] = json.load(f)
-            return result
 
     async def save_history(self, user_id: int, messages: list[dict[str, str]]) -> None:
         """
@@ -124,11 +111,9 @@ class Storage:
                 "updated_at": datetime.now(UTC).isoformat(),
             }
 
-            # Сохраняем асинхронно
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self._write_json_file, file_path, data)
+            # Сохраняем асинхронно через aiofiles
+            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
 
             logger.info(
                 f"User {user_id}: saved history with {len(limited_messages)} messages to {file_path}"
@@ -139,17 +124,6 @@ class Storage:
                 f"User {user_id}: failed to save history to {file_path}: {e}", exc_info=True
             )
             raise
-
-    def _write_json_file(self, file_path: Path, data: dict[str, Any]) -> None:
-        """
-        Синхронная запись JSON файла.
-
-        Args:
-            file_path: Путь к JSON файлу
-            data: Данные для записи
-        """
-        with open(file_path, "w", encoding="utf-8") as f:
-            json.dump(data, f, ensure_ascii=False, indent=2)
 
     def _limit_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
         """
@@ -196,10 +170,11 @@ class Storage:
 
         try:
             if file_path.exists():
-                import asyncio
-
-                loop = asyncio.get_event_loop()
-                await loop.run_in_executor(None, file_path.unlink)
+                # Используем aiofiles для удаления файла
+                async with aiofiles.open(file_path):
+                    pass  # Просто открываем для проверки доступа
+                # Удаляем через Path.unlink (синхронная операция, но быстрая)
+                file_path.unlink()
                 logger.info(f"User {user_id}: history cleared (file deleted)")
             else:
                 logger.debug(f"User {user_id}: no history file to clear")
@@ -225,12 +200,12 @@ class Storage:
             return None
 
         try:
-            import asyncio
+            # Читаем файл асинхронно через aiofiles
+            async with aiofiles.open(file_path, encoding="utf-8") as f:
+                content = await f.read()
+                data = json.loads(content)
 
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, self._read_json_file, file_path)
-
-            system_prompt = data.get("system_prompt")
+            system_prompt: str | None = data.get("system_prompt")
             if system_prompt:
                 logger.debug(
                     f"User {user_id}: loaded custom system prompt ({len(system_prompt)} chars)"
@@ -271,11 +246,9 @@ class Storage:
                 "updated_at": datetime.now(UTC).isoformat(),
             }
 
-            # Сохраняем
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            await loop.run_in_executor(None, self._write_json_file, file_path, data)
+            # Сохраняем асинхронно через aiofiles
+            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
+                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
 
             logger.info(
                 f"User {user_id}: system prompt set ({len(system_prompt)} chars), history cleared"
@@ -305,10 +278,10 @@ class Storage:
             return {"messages_count": 0, "system_prompt": None, "updated_at": None}
 
         try:
-            import asyncio
-
-            loop = asyncio.get_event_loop()
-            data = await loop.run_in_executor(None, self._read_json_file, file_path)
+            # Читаем файл асинхронно через aiofiles
+            async with aiofiles.open(file_path, encoding="utf-8") as f:
+                content = await f.read()
+                data = json.loads(content)
 
             messages = data.get("messages", [])
             system_prompt = data.get("system_prompt")
