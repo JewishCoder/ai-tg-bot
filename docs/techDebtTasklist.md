@@ -10,6 +10,7 @@
 | ⚡ Итерация 3 | Async I/O (aiofiles) | ✅ Завершено | 2025-10-11 |
 | 🚀 Итерация 4 | CI/CD Pipeline | ✅ Завершено | 2025-10-11 |
 | 🎯 Итерация 5 | Расширенное тестирование | ✅ Завершено | 2025-10-11 |
+| 🐳 Итерация 6 | Docker Registry (Yandex Cloud) | ✅ Завершено | 2025-10-11 |
 
 ### Легенда статусов
 - ⏳ **В ожидании** - задача не начата
@@ -805,6 +806,524 @@ make ci
 
 ---
 
+## 🐳 Итерация 6: Docker Registry (Yandex Cloud)
+
+**Цель**: Автоматизировать сборку и публикацию Docker образов в Yandex Cloud Container Registry.
+
+### Задачи
+
+#### Подготовка инфраструктуры (вручную)
+
+**Эти действия выполняются разработчиком вручную:**
+
+- [ ] Создать Container Registry в Yandex Cloud (см. инструкции ниже)
+- [ ] Создать Service Account с правами `container-registry.images.pusher`
+- [ ] Создать авторизованный ключ JSON для Service Account
+- [ ] Добавить секреты в GitHub Repository Settings → Secrets and variables → Actions:
+  - **`YA_CLOUD_REGISTRY`** - JSON ключ Service Account (весь файл key.json)
+  - **`YC_REGISTRY_ID`** - ID Container Registry (формат: `crpXXXXXXXXXXXXXXXX`)
+
+#### Управление версиями
+
+- [x] Создать файл `VERSION` в корне репозитория
+  - Формат: `1.0.0` (без префикса `v`)
+  - Начальная версия: `0.1.0`
+- [x] Добавить `VERSION` в git (коммитить)
+- [x] Обновлять `VERSION` вручную перед каждым релизом
+
+#### Обновление CI/CD
+
+- [x] Обновить `.github/workflows/ci.yml`
+- [x] Добавить новый job `docker` после job `quality`
+- [x] Настроить зависимость: `docker` запускается только после успешного `quality`
+- [x] Настроить триггеры: только на `push` в ветку `main`
+- [x] Настроить чтение версии из файла `VERSION`
+- [x] Настроить Docker Buildx для эффективной сборки
+- [x] Настроить авторизацию в Yandex Container Registry
+- [x] Настроить тегирование образов: `{version}` и `latest`
+- [x] Настроить GitHub Actions Cache для Docker слоев
+
+#### Стратегия версионирования образов
+
+**Принцип:**
+- Версия хранится в файле `VERSION` в корне репозитория
+- Формат: `1.0.0` (семантическое версионирование без префикса `v`)
+- CI автоматически читает версию из файла и создает образы
+
+**Теги для образов:**
+
+1. **`{version}`** - конкретная версия из файла `VERSION` (например, `1.0.0`)
+2. **`latest`** - последняя опубликованная версия из `main`
+
+**Метаданные (Labels):**
+- `org.opencontainers.image.version` - версия из файла VERSION
+- `org.opencontainers.image.revision` - полный git SHA коммита
+- `org.opencontainers.image.created` - дата и время сборки (UTC)
+- `org.opencontainers.image.source` - URL репозитория
+
+**Примеры образов:**
+```
+cr.yandex/{registry-id}/ai-tg-bot:0.1.0
+cr.yandex/{registry-id}/ai-tg-bot:1.0.0
+cr.yandex/{registry-id}/ai-tg-bot:1.2.3
+cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Workflow обновления версии:**
+1. Редактируем файл `VERSION`: `1.0.0` → `1.0.1`
+2. Коммитим: `git commit -am "chore: bump version to 1.0.1"`
+3. Push в `main`: автоматически собираются образы с новой версией
+4. Результат: `ai-tg-bot:1.0.1` и `ai-tg-bot:latest`
+
+#### Документация
+
+- [x] Обновить README.md с инструкциями по Docker Registry
+- [x] Добавить секцию "Deployment" в README.md
+- [x] Документировать требования к GitHub Secrets
+- [x] Добавить примеры команд для pull образов
+- [ ] Добавить badge с версией Docker образа (опционально)
+
+### Конфигурация CI
+
+**Обновить `.github/workflows/ci.yml`:**
+
+```yaml
+name: CI
+
+on:
+  push:
+    branches: [ main, develop ]
+  pull_request:
+    branches: [ main, develop ]
+  workflow_dispatch:
+
+env:
+  REGISTRY: cr.yandex
+  IMAGE_NAME: ai-tg-bot
+
+jobs:
+  quality:
+    name: Code Quality & Tests
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      
+      - name: Install uv
+        run: pip install uv
+      
+      - name: Install dependencies
+        run: uv sync --all-extras
+      
+      - name: Check formatting
+        run: uv run ruff format --check src/ tests/
+      
+      - name: Run linter
+        run: uv run ruff check src/ tests/
+      
+      - name: Run type checker
+        run: uv run mypy src/
+      
+      - name: Run tests with coverage
+        run: uv run pytest tests/ --cov=src --cov-report=term --cov-report=xml --cov-fail-under=80
+
+  docker:
+    name: Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: quality
+    # Публикуем только при push в main (не при PR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+      
+      - name: Read version from VERSION file
+        id: version
+        run: |
+          VERSION=$(cat VERSION | tr -d '\n\r')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Building version: ${VERSION}"
+      
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+      
+      - name: Log in to Yandex Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: json_key
+          password: ${{ secrets.YA_CLOUD_REGISTRY }}
+      
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          file: ./.build/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.title=AI Telegram Bot
+            org.opencontainers.image.description=AI-powered Telegram bot with LLM integration
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+      
+      - name: Image info
+        run: |
+          echo "✅ Docker images published successfully!"
+          echo ""
+          echo "Images:"
+          echo "  - ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          echo "  - ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:latest"
+          echo ""
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Commit: ${{ github.sha }}"
+```
+
+### Инструкции для ручной настройки Yandex Cloud
+
+#### Шаг 1: Установка Yandex Cloud CLI
+
+**Windows PowerShell:**
+```powershell
+iex (New-Object System.Net.WebClient).DownloadString('https://storage.yandexcloud.net/yandexcloud-yc/install.ps1')
+```
+
+**Linux/macOS:**
+```bash
+curl -sSL https://storage.yandexcloud.net/yandexcloud-yc/install.sh | bash
+```
+
+#### Шаг 2: Инициализация и авторизация
+
+```bash
+yc init
+# Следуйте инструкциям: выберите cloud, folder, зону
+```
+
+#### Шаг 3: Создание Container Registry
+
+```bash
+yc container registry create --name ai-tg-bot-registry
+```
+
+**Результат:**
+```
+done (1s)
+id: crp1234567890abcdef  <-- Сохраните этот ID!
+folder_id: b1g...
+name: ai-tg-bot-registry
+status: ACTIVE
+created_at: "2025-10-11T12:00:00.000Z"
+```
+
+**✅ Скопируйте `id` (формат: `crpXXXXXXXXXXXXXXXX`) - это `YC_REGISTRY_ID`**
+
+#### Шаг 4: Создание Service Account
+
+```bash
+# 1. Получить ID папки (folder)
+yc config list
+# Найдите строку: folder-id: b1gXXXXXXXXXXXXXXXXX
+
+# 2. Создать service account
+yc iam service-account create \
+  --name github-actions-sa \
+  --description "Service Account for GitHub Actions Docker push"
+
+# 3. Получить ID service account
+yc iam service-account get github-actions-sa
+# Найдите строку: id: ajeXXXXXXXXXXXXXXXXX
+
+# 4. Назначить роль container-registry.images.pusher
+yc resource-manager folder add-access-binding <FOLDER_ID> \
+  --role container-registry.images.pusher \
+  --subject serviceAccount:<SERVICE_ACCOUNT_ID>
+
+# Замените:
+# <FOLDER_ID> на ваш folder-id (из шага 1)
+# <SERVICE_ACCOUNT_ID> на id service account (из шага 3)
+```
+
+#### Шаг 5: Создание авторизованного ключа
+
+```bash
+yc iam key create \
+  --service-account-name github-actions-sa \
+  --output key.json
+
+# Просмотреть содержимое ключа
+cat key.json
+```
+
+**Результат `key.json`:**
+```json
+{
+   "id": "ajeXXXXXXXXXXXXXXXXX",
+   "service_account_id": "ajeYYYYYYYYYYYYYYYYY",
+   "created_at": "2025-10-11T12:00:00.000000Z",
+   "key_algorithm": "RSA_2048",
+   "public_key": "-----BEGIN PUBLIC KEY-----\n...\n-----END PUBLIC KEY-----\n",
+   "private_key": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+}
+```
+
+**✅ Весь этот JSON нужно скопировать в GitHub Secret `YA_CLOUD_REGISTRY`**
+
+#### Шаг 6: Проверка
+
+```bash
+# Проверить что registry создан
+yc container registry list
+
+# Проверить что service account имеет права
+yc resource-manager folder list-access-bindings <FOLDER_ID> | grep github-actions-sa
+```
+
+#### Шаг 7: Добавление секретов в GitHub
+
+1. Перейдите в репозиторий на GitHub
+2. **Settings** → **Secrets and variables** → **Actions**
+3. Нажмите **New repository secret**
+
+**Секрет 1: `YC_REGISTRY_ID`**
+- Name: `YC_REGISTRY_ID`
+- Value: `crp1234567890abcdef` (ID registry из Шага 3)
+
+**Секрет 2: `YA_CLOUD_REGISTRY`**
+- Name: `YA_CLOUD_REGISTRY`
+- Value: полное содержимое файла `key.json` (из Шага 5)
+
+**✅ Готово! Секреты настроены.**
+
+### Обновление README.md
+
+Добавить секцию:
+
+```markdown
+## 🐳 Deployment
+
+### Docker Registry
+
+Проект автоматически публикует Docker образы в Yandex Cloud Container Registry при каждом push в `main`.
+
+**Версионирование:**
+- Версия хранится в файле `VERSION` в корне репозитория (формат: `1.0.0`)
+- При push в `main` автоматически собираются образы с текущей версией
+
+**Доступные образы:**
+
+```bash
+# Конкретная версия
+cr.yandex/{registry-id}/ai-tg-bot:1.0.0
+
+# Последняя стабильная версия
+cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Как обновить версию:**
+
+1. Отредактируйте файл `VERSION`: `1.0.0` → `1.0.1`
+2. Закоммитьте: `git commit -am "chore: bump version to 1.0.1"`
+3. Push в `main`: автоматически соберутся образы `1.0.1` и `latest`
+
+**Pull образа:**
+
+```bash
+# Авторизоваться в Yandex Container Registry
+yc container registry configure-docker
+
+# Pull конкретной версии
+docker pull cr.yandex/{registry-id}/ai-tg-bot:1.0.0
+
+# Pull последней версии
+docker pull cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Запуск контейнера:**
+
+```bash
+docker run -d \
+  --name ai-tg-bot \
+  --env-file .env.production \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  --restart unless-stopped \
+  cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Проверка запущенного контейнера:**
+
+```bash
+# Логи
+docker logs ai-tg-bot -f
+
+# Статус
+docker ps | grep ai-tg-bot
+
+# Остановка
+docker stop ai-tg-bot
+
+# Удаление
+docker rm ai-tg-bot
+```
+
+### Требуемые GitHub Secrets
+
+Для работы CI/CD необходимо настроить следующие секреты в **Settings → Secrets and variables → Actions**:
+
+| Секрет | Описание | Пример значения |
+|--------|----------|-----------------|
+| `YA_CLOUD_REGISTRY` | JSON ключ Service Account | `{"id": "aje...", "service_account_id": "...", ...}` |
+| `YC_REGISTRY_ID` | ID Container Registry | `crp1234567890abcdef` |
+```
+
+### Тест
+
+**1. Создать файл VERSION:**
+```bash
+# Создать файл с начальной версией
+echo "0.1.0" > VERSION
+
+# Закоммитить
+git add VERSION
+git commit -m "chore: add VERSION file"
+```
+
+**2. Локальная проверка Docker:**
+```bash
+# Проверить что .build/Dockerfile существует и корректен
+docker build -f .build/Dockerfile -t ai-tg-bot:test .
+
+# Запустить контейнер для теста (должен вывести help)
+docker run --rm ai-tg-bot:test python -m src.main --help
+```
+
+**3. Проверка CI через PR:**
+```bash
+# Создать ветку
+git checkout -b feature/docker-registry
+
+# Закоммитить изменения
+git add .github/workflows/ci.yml README.md VERSION
+git commit -m "feat: add Docker Registry integration"
+
+# Push и создать PR
+git push origin feature/docker-registry
+
+# Проверить что CI проходит:
+# ✅ quality job должен пройти успешно
+# ⚠️ docker job НЕ запускается (только в main)
+```
+
+**4. После мержа в main:**
+```bash
+# Влить PR в main
+# Проверить что оба job запустились:
+# ✅ quality job
+# ✅ docker job (сборка и публикация образов)
+```
+
+**5. Проверка образов в Yandex Cloud:**
+```bash
+# Посмотреть список образов
+yc container image list --registry-id <YC_REGISTRY_ID>
+
+# Посмотреть теги конкретного образа
+yc container image list --registry-id <YC_REGISTRY_ID> --repository-name ai-tg-bot
+
+# Ожидаемый результат:
+# - ai-tg-bot:0.1.0
+# - ai-tg-bot:latest
+```
+
+**6. Pull и запуск образа из Registry:**
+```bash
+# Авторизоваться в Registry
+yc container registry configure-docker
+
+# Pull образа
+docker pull cr.yandex/<YC_REGISTRY_ID>/ai-tg-bot:0.1.0
+docker pull cr.yandex/<YC_REGISTRY_ID>/ai-tg-bot:latest
+
+# Запустить контейнер
+docker run --rm \
+  -e BOT_TOKEN=<your-token> \
+  -e OPENROUTER_API_KEY=<your-key> \
+  -v $(pwd)/data:/app/data \
+  cr.yandex/<YC_REGISTRY_ID>/ai-tg-bot:latest
+
+# Проверить что бот запустился и работает
+```
+
+**7. Проверка обновления версии:**
+```bash
+# Обновить VERSION
+echo "0.2.0" > VERSION
+
+# Закоммитить и запушить
+git add VERSION
+git commit -m "chore: bump version to 0.2.0"
+git push origin main
+
+# Проверить что CI собрал новые образы:
+# - ai-tg-bot:0.2.0
+# - ai-tg-bot:latest (обновлен)
+```
+
+### Проверка соответствия стандартам
+
+- [ ] ✅ Простая конфигурация CI (conventions.mdc: KISS)
+- [ ] ✅ Интеграция с существующим CI workflow (vision.md)
+- [ ] ✅ Используется production Dockerfile из .build/ (vision.md)
+- [ ] ✅ Автоматическое версионирование образов (best practice)
+- [ ] ✅ GitHub Actions Cache для ускорения сборки (оптимизация)
+- [ ] ✅ Метаданные (labels) для отслеживания (best practice)
+- [ ] ✅ Документация обновлена (conventions.mdc)
+- [ ] ✅ Безопасность: секреты через GitHub Secrets (best practice)
+- [ ] ✅ Только необходимые зависимости - используем существующие actions (conventions.mdc)
+
+### Ожидаемые результаты
+
+**После завершения итерации:**
+
+- ✅ **Автоматическая сборка** Docker образов при push в `main`
+- ✅ **Публикация** в Yandex Cloud Container Registry
+- ✅ **Версионирование** через файл `VERSION` (формат: `1.0.0`)
+- ✅ **Теги образов**: `{version}` и `latest`
+- ✅ **GitHub Actions Cache** ускоряет повторные сборки
+- ✅ **Метаданные OCI** для отслеживания версий и источника
+- ✅ **Документация** для deployment в README.md
+- ✅ **Секреты настроены** вручную в GitHub
+
+**Метрики:**
+
+- Время сборки: ~2-5 минут (с cache ~1-2 минуты)
+- Размер образа: ~150-200 MB (Alpine-based multi-stage build)
+- Автоматизация сборки: 100% (версия из файла, без ручного вмешательства)
+- Обновление версии: вручную (редактирование файла `VERSION`)
+
+**Workflow релиза:**
+
+1. Обновить `VERSION`: `0.1.0` → `0.2.0`
+2. Закоммитить: `git commit -am "chore: bump version to 0.2.0"`
+3. Push в `main`: CI автоматически соберет образы `0.2.0` и `latest`
+4. Образы доступны в Yandex Cloud Registry
+
+---
+
 ## 📝 Дополнительные улучшения (опционально)
 
 Эти задачи можно выполнить после основных итераций:
@@ -885,6 +1404,6 @@ make ci
 
 **Обновления**:
 - 2025-10-11: Добавлена Итерация 5 - Расширенное тестирование (utils, handlers, 80%+ coverage)
+- 2025-10-11: Добавлена и завершена Итерация 6 - Docker Registry (Yandex Cloud) с версионированием через файл VERSION
 
 **Примечание**: Этот план создан на основе рекомендаций Senior Python Tech Lead после code review проекта. Следуй принципам KISS, DRY, SOLID и best practices Python.
-

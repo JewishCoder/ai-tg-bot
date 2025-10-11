@@ -265,6 +265,84 @@ ai-tg-bot/
 - **uv** - управление зависимостями
 - **Docker** - контейнеризация приложения
 
+## 🐳 Deployment
+
+### Docker Registry
+
+Проект автоматически публикует Docker образы в Yandex Cloud Container Registry при каждом push в `main`.
+
+**Версионирование:**
+- Версия хранится в файле `VERSION` в корне репозитория (формат: `1.0.0`)
+- При push в `main` автоматически собираются образы с текущей версией
+
+**Доступные образы:**
+
+```bash
+# Конкретная версия
+cr.yandex/{registry-id}/ai-tg-bot:0.1.0
+
+# Последняя стабильная версия
+cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Как обновить версию:**
+
+1. Отредактируйте файл `VERSION`: `0.1.0` → `0.2.0`
+2. Закоммитьте: `git commit -am "chore: bump version to 0.2.0"`
+3. Push в `main`: автоматически соберутся образы `0.2.0` и `latest`
+
+**Pull образа:**
+
+```bash
+# Авторизоваться в Yandex Container Registry
+yc container registry configure-docker
+
+# Pull конкретной версии
+docker pull cr.yandex/{registry-id}/ai-tg-bot:0.1.0
+
+# Pull последней версии
+docker pull cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Запуск контейнера:**
+
+```bash
+docker run -d \
+  --name ai-tg-bot \
+  --env-file .env.production \
+  -v $(pwd)/data:/app/data \
+  -v $(pwd)/logs:/app/logs \
+  --restart unless-stopped \
+  cr.yandex/{registry-id}/ai-tg-bot:latest
+```
+
+**Проверка запущенного контейнера:**
+
+```bash
+# Логи
+docker logs ai-tg-bot -f
+
+# Статус
+docker ps | grep ai-tg-bot
+
+# Остановка
+docker stop ai-tg-bot
+
+# Удаление
+docker rm ai-tg-bot
+```
+
+### Требуемые GitHub Secrets
+
+Для работы CI/CD необходимо настроить следующие секреты в **Settings → Secrets and variables → Actions**:
+
+| Секрет | Описание | Пример значения |
+|--------|----------|-----------------|
+| `YA_CLOUD_REGISTRY` | JSON ключ Service Account | `{"id": "aje...", "service_account_id": "...", ...}` |
+| `YC_REGISTRY_ID` | ID Container Registry | `crp1234567890abcdef` |
+
+Подробные инструкции по настройке Yandex Cloud смотрите в [docs/techDebtTasklist.md](docs/techDebtTasklist.md) (Итерация 6).
+
 ## 📄 Лицензия
 
 MIT
