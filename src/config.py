@@ -25,6 +25,9 @@ class Config(BaseSettings):
     openrouter_model: str = Field(
         default="anthropic/claude-3.5-sonnet", description="LLM model to use"
     )
+    openrouter_fallback_model: str | None = Field(
+        default=None, description="Fallback LLM model to use when primary model fails"
+    )
 
     # System Prompt
     system_prompt: str = Field(

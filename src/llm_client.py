@@ -106,6 +106,9 @@ class LLMClient:
                 if attempt < self.config.retry_attempts - 1:
                     await self._retry_delay(attempt)
                 else:
+                    # Проверяем нужен ли fallback
+                    if self._should_try_fallback(e):
+                        return await self._try_fallback_model(api_messages, user_id, e)
                     raise LLMAPIError("Rate limit exceeded") from e
 
             except APITimeoutError as e:
@@ -134,6 +137,9 @@ class LLMClient:
                 if attempt < self.config.retry_attempts - 1:
                     await self._retry_delay(attempt)
                 else:
+                    # Проверяем нужен ли fallback
+                    if self._should_try_fallback(e):
+                        return await self._try_fallback_model(api_messages, user_id, e)
                     raise LLMAPIError(f"API error: {str(e)}") from e
 
             except Exception as e:
@@ -155,3 +161,118 @@ class LLMClient:
         delay = self.config.retry_delay * (2**attempt)
         logger.debug(f"Waiting {delay:.2f}s before retry...")
         await asyncio.sleep(delay)
+
+    def _should_try_fallback(self, error: Exception) -> bool:
+        """
+        Определяет нужно ли пробовать fallback модель.
+
+        Fallback используется только для:
+        - RateLimitError (429) - превышен лимит запросов
+        - APIError - серверные ошибки (500, 503)
+
+        НЕ используется для:
+        - APITimeoutError - timeout проблема сети
+        - APIConnectionError - проблема соединения
+
+        Args:
+            error: Исключение которое произошло
+
+        Returns:
+            True если нужно попробовать fallback модель, False иначе
+        """
+        # Если fallback модель не настроена - не пытаемся
+        if not self.config.openrouter_fallback_model:
+            return False
+
+        # Timeout и Connection errors НЕ триггерят fallback (проверяем первыми)
+        if isinstance(error, APITimeoutError | APIConnectionError):
+            return False
+
+        # RateLimitError и APIError триггерят fallback
+        return isinstance(error, RateLimitError | APIError)
+
+    async def _try_fallback_model(
+        self, api_messages: list[dict[str, str]], user_id: int, primary_error: Exception
+    ) -> str:
+        """
+        Попытка запроса к fallback модели с retry механизмом.
+
+        Args:
+            api_messages: Сообщения для отправки
+            user_id: ID пользователя
+            primary_error: Ошибка от основной модели
+
+        Returns:
+            Ответ от fallback модели
+
+        Raises:
+            LLMAPIError: Если fallback модель также провалилась
+        """
+        fallback_model = self.config.openrouter_fallback_model
+
+        # Гарантируем что fallback модель настроена (для type checker)
+        if not fallback_model:
+            raise LLMAPIError("Fallback model not configured")
+
+        logger.warning(
+            f"Primary model failed for user {user_id}: {primary_error}. "
+            f"Trying fallback model: {fallback_model}"
+        )
+
+        # Retry механизм для fallback модели
+        for attempt in range(self.config.retry_attempts):
+            try:
+                start_time = time.time()
+
+                response = await self.client.chat.completions.create(
+                    model=fallback_model,
+                    messages=api_messages,  # type: ignore[arg-type]
+                    temperature=self.config.llm_temperature,
+                    max_tokens=self.config.llm_max_tokens,
+                )
+
+                elapsed_time = time.time() - start_time
+
+                # Извлекаем ответ
+                assistant_message = response.choices[0].message.content
+
+                # Логируем успешный fallback
+                if response.usage:
+                    prompt_tokens = response.usage.prompt_tokens
+                    completion_tokens = response.usage.completion_tokens
+                    total_tokens = response.usage.total_tokens
+
+                    logger.info(
+                        f"Fallback model succeeded for user {user_id}: "
+                        f"model={fallback_model}, "
+                        f"tokens(prompt={prompt_tokens}, completion={completion_tokens}, total={total_tokens}), "
+                        f"time={elapsed_time:.2f}s"
+                    )
+                else:
+                    logger.info(
+                        f"Fallback model succeeded for user {user_id}: "
+                        f"model={fallback_model}, time={elapsed_time:.2f}s"
+                    )
+
+                return assistant_message or ""
+
+            except Exception as e:
+                logger.warning(
+                    f"Fallback model error for user {user_id} "
+                    f"(attempt {attempt + 1}/{self.config.retry_attempts}): {e}"
+                )
+                if attempt < self.config.retry_attempts - 1:
+                    await self._retry_delay(attempt)
+                else:
+                    # Fallback тоже провалился
+                    logger.error(
+                        f"Both models failed for user {user_id}. "
+                        f"Primary: {primary_error}. Fallback: {e}"
+                    )
+                    raise LLMAPIError(
+                        f"Both primary and fallback models failed. "
+                        f"Primary: {str(primary_error)}. Fallback: {str(e)}"
+                    ) from e
+
+        # На случай, если цикл завершился без return (не должно происходить)
+        raise LLMAPIError("Fallback model failed after all retries")

@@ -318,3 +318,201 @@ class TestLLMClient:
         # (проверка логирования через caplog требует дополнительной фикстуры,
         # здесь просто убеждаемся что код выполняется без ошибок)
         assert mock_openai_client.chat.completions.create.called
+
+
+class TestLLMClientFallback:
+    """Тесты fallback механизма LLMClient."""
+
+    @pytest.mark.asyncio
+    async def test_should_try_fallback_on_rate_limit(self, test_config: Config) -> None:
+        """
+        Тест: RateLimitError триггерит fallback.
+
+        Args:
+            test_config: Тестовая конфигурация
+        """
+        # Arrange: настраиваем конфиг с fallback моделью
+        test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
+        llm_client = LLMClient(test_config)
+
+        # Создаём RateLimitError
+        mock_response = MagicMock()
+        mock_response.request = MagicMock()
+        error = RateLimitError("Rate limit exceeded", response=mock_response, body=None)
+
+        # Act: проверяем должен ли сработать fallback
+        should_fallback = llm_client._should_try_fallback(error)
+
+        # Assert: RateLimitError должен триггерить fallback
+        assert should_fallback is True
+
+    @pytest.mark.asyncio
+    async def test_should_try_fallback_on_api_error(self, test_config: Config) -> None:
+        """
+        Тест: APIError триггерит fallback.
+
+        Args:
+            test_config: Тестовая конфигурация
+        """
+        # Arrange: настраиваем конфиг с fallback моделью
+        test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
+        llm_client = LLMClient(test_config)
+
+        # Создаём APIError
+        error = APIError("Server error", request=AsyncMock(), body=None)
+
+        # Act: проверяем должен ли сработать fallback
+        should_fallback = llm_client._should_try_fallback(error)
+
+        # Assert: APIError должен триггерить fallback
+        assert should_fallback is True
+
+    @pytest.mark.asyncio
+    async def test_should_not_fallback_when_no_fallback_model(self, test_config: Config) -> None:
+        """
+        Тест: fallback не срабатывает если не настроен.
+
+        Args:
+            test_config: Тестовая конфигурация
+        """
+        # Arrange: НЕ настраиваем fallback модель
+        test_config.openrouter_fallback_model = None
+        llm_client = LLMClient(test_config)
+
+        # Создаём RateLimitError
+        mock_response = MagicMock()
+        mock_response.request = MagicMock()
+        error = RateLimitError("Rate limit exceeded", response=mock_response, body=None)
+
+        # Act: проверяем должен ли сработать fallback
+        should_fallback = llm_client._should_try_fallback(error)
+
+        # Assert: без fallback модели не должно быть fallback
+        assert should_fallback is False
+
+    @pytest.mark.asyncio
+    async def test_should_not_fallback_on_timeout(self, test_config: Config) -> None:
+        """
+        Тест: Timeout ошибки НЕ триггерят fallback.
+
+        Args:
+            test_config: Тестовая конфигурация
+        """
+        # Arrange: настраиваем конфиг с fallback моделью
+        test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
+        llm_client = LLMClient(test_config)
+
+        # Создаём APITimeoutError
+        from openai import APITimeoutError
+
+        error = APITimeoutError(request=AsyncMock())
+
+        # Act: проверяем должен ли сработать fallback
+        should_fallback = llm_client._should_try_fallback(error)
+
+        # Assert: Timeout НЕ должен триггерить fallback
+        assert should_fallback is False
+
+    @pytest.mark.asyncio
+    async def test_should_not_fallback_on_connection_error(self, test_config: Config) -> None:
+        """
+        Тест: Connection ошибки НЕ триггерят fallback.
+
+        Args:
+            test_config: Тестовая конфигурация
+        """
+        # Arrange: настраиваем конфиг с fallback моделью
+        test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
+        llm_client = LLMClient(test_config)
+
+        # Создаём APIConnectionError
+        error = APIConnectionError(request=AsyncMock())
+
+        # Act: проверяем должен ли сработать fallback
+        should_fallback = llm_client._should_try_fallback(error)
+
+        # Assert: Connection error НЕ должен триггерить fallback
+        assert should_fallback is False
+
+    @pytest.mark.asyncio
+    async def test_fallback_on_primary_model_failure(
+        self, test_config: Config, sample_messages: list[dict[str, str]]
+    ) -> None:
+        """
+        Тест: успешный fallback при провале основной модели.
+
+        Args:
+            test_config: Тестовая конфигурация
+            sample_messages: Примеры сообщений
+        """
+        # Arrange: настраиваем fallback модель
+        test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
+        llm_client = LLMClient(test_config)
+        user_id = 12345
+
+        # Mock: основная модель провалилась с RateLimitError, fallback успешен
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.request = MagicMock()
+
+        # Fallback ответ
+        mock_choice = AsyncMock()
+        mock_choice.message.content = "Ответ от fallback модели"
+        mock_completion = AsyncMock()
+        mock_completion.choices = [mock_choice]
+        mock_completion.usage.prompt_tokens = 10
+        mock_completion.usage.completion_tokens = 5
+        mock_completion.usage.total_tokens = 15
+
+        # Основная модель: 3 провала, потом fallback успех
+        mock_client.chat.completions.create.side_effect = [
+            RateLimitError("Rate limit", response=mock_response, body=None),
+            RateLimitError("Rate limit", response=mock_response, body=None),
+            RateLimitError("Rate limit", response=mock_response, body=None),
+            mock_completion,  # Fallback успех
+        ]
+
+        llm_client.client = mock_client
+
+        # Act: вызываем generate_response
+        response = await llm_client.generate_response(sample_messages, user_id)
+
+        # Assert: получили ответ от fallback модели
+        assert response == "Ответ от fallback модели"
+        # 3 попытки основной модели + 1 успешный fallback
+        assert mock_client.chat.completions.create.call_count == 4
+
+    @pytest.mark.asyncio
+    async def test_no_fallback_without_config(
+        self, test_config: Config, sample_messages: list[dict[str, str]]
+    ) -> None:
+        """
+        Тест: fallback не используется если не настроен.
+
+        Args:
+            test_config: Тестовая конфигурация
+            sample_messages: Примеры сообщений
+        """
+        # Arrange: НЕ настраиваем fallback модель
+        test_config.openrouter_fallback_model = None
+        llm_client = LLMClient(test_config)
+        user_id = 12345
+
+        # Mock: основная модель провалилась
+        mock_client = AsyncMock()
+        mock_response = MagicMock()
+        mock_response.request = MagicMock()
+
+        mock_client.chat.completions.create.side_effect = RateLimitError(
+            "Rate limit", response=mock_response, body=None
+        )
+
+        llm_client.client = mock_client
+
+        # Act & Assert: должно выброситься исключение
+        with pytest.raises(LLMAPIError) as exc_info:
+            await llm_client.generate_response(sample_messages, user_id)
+
+        assert "Rate limit exceeded" in str(exc_info.value)
+        # Только 3 попытки основной модели, нет fallback
+        assert mock_client.chat.completions.create.call_count == 3
