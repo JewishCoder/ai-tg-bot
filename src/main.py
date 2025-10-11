@@ -132,6 +132,14 @@ async def main_async(env_file: Path | None) -> None:
 
 def main() -> None:
     """Главная функция приложения."""
+    # Проверка версии Python
+    if sys.version_info < (3, 11):  # noqa: UP036
+        sys.stderr.write("ОШИБКА: Требуется Python 3.11 или выше\n")
+        sys.stderr.write(
+            f"Текущая версия: Python {sys.version_info.major}.{sys.version_info.minor}\n"
+        )
+        sys.exit(1)
+
     args = parse_args()
 
     # Определяем путь к .env файлу (если указан)

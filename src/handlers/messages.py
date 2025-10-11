@@ -114,12 +114,9 @@ async def handle_message(
             )
 
             for i, part in enumerate(message_parts, 1):
-                # Добавляем индикатор части если сообщений больше одного
-                if len(message_parts) > 1:
-                    part_indicator = f"📄 Часть {i}/{len(message_parts)}\n\n"
-                    part_with_indicator = part_indicator + part
-                else:
-                    part_with_indicator = part
+                # Добавляем индикатор части
+                part_indicator = f"📄 Часть {i}/{len(message_parts)}\n\n"
+                part_with_indicator = part_indicator + part
 
                 await message.answer(part_with_indicator)
 

@@ -170,10 +170,7 @@ class Storage:
 
         try:
             if file_path.exists():
-                # Используем aiofiles для удаления файла
-                async with aiofiles.open(file_path):
-                    pass  # Просто открываем для проверки доступа
-                # Удаляем через Path.unlink (синхронная операция, но быстрая)
+                # Удаление файла - быстрая операция, синхронное выполнение приемлемо
                 file_path.unlink()
                 logger.info(f"User {user_id}: history cleared (file deleted)")
             else:
