@@ -2,6 +2,7 @@
 
 import logging
 from datetime import datetime
+from pathlib import Path
 
 from aiogram import Bot
 from aiogram.enums import ChatAction
@@ -11,6 +12,20 @@ from src.config import Config
 from src.storage import Storage
 
 logger = logging.getLogger(__name__)
+
+
+def get_bot_version() -> str:
+    """
+    Получает версию бота из файла VERSION.
+
+    Returns:
+        Версия бота или 'unknown' если файл не найден
+    """
+    try:
+        version_file = Path(__file__).parent.parent.parent / "VERSION"
+        return version_file.read_text().strip()
+    except Exception:
+        return "unknown"
 
 
 async def handle_start(message: Message) -> None:
@@ -208,11 +223,14 @@ async def handle_status(message: Message, bot: Bot, storage: Storage, config: Co
         else:
             updated_str = "Нет данных"
 
+        bot_version = get_bot_version()
+
         status_text = (
             f"📊 Статус вашего диалога\n\n"
+            f"🤖 Версия бота: {bot_version}\n"
             f"💬 Сообщений в истории: {messages_count}\n"
             f"🎭 Тип роли: {role_type}\n"
-            f"🤖 Модель: {config.openrouter_model}\n"
+            f"🧠 Модель: {config.openrouter_model}\n"
             f"📅 Последнее обновление: {updated_str}\n\n"
             f"📝 Текущая роль:\n{prompt_preview}"
         )

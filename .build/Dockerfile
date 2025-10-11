@@ -55,9 +55,9 @@ WORKDIR /app
 COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy source code
+# Copy source code and version file
 COPY --chown=bot:bot src/ ./src/
-COPY --chown=bot:bot README.md ./
+COPY --chown=bot:bot README.md VERSION ./
 
 # Copy entrypoint script
 COPY .build/entrypoint.sh /usr/local/bin/entrypoint.sh
