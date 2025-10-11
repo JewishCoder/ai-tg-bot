@@ -1,6 +1,5 @@
 """Тесты для утилиты форматирования ошибок."""
 
-
 from src.utils.error_formatter import get_error_message
 
 

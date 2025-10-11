@@ -1,6 +1,5 @@
 """Тесты для утилиты разбивки сообщений."""
 
-
 from src.utils.message_splitter import split_message
 
 
