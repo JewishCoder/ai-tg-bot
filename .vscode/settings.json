@@ -1,0 +1,44 @@
+{
+    // Python настройки
+    "python.defaultInterpreterPath": "${workspaceFolder}/.venv/Scripts/python.exe",
+    // Pytest конфигурация
+    "python.testing.pytestEnabled": true,
+    "python.testing.unittestEnabled": false,
+    "python.testing.pytestArgs": [
+        "tests",
+        "-v",
+        "--tb=short"
+    ],
+    // Автоматическое обнаружение тестов
+    "python.testing.autoTestDiscoverOnSaveEnabled": true,
+    // Дополнительные настройки для pytest
+    "python.testing.cwd": "${workspaceFolder}",
+    // Форматирование
+    "editor.formatOnSave": true,
+    "[python]": {
+        "editor.defaultFormatter": "charliermarsh.ruff",
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        }
+    },
+    // Ruff
+    "ruff.enable": true,
+    "ruff.lint.run": "onSave",
+    // Mypy
+    "mypy-type-checker.args": [
+        "--config-file=pyproject.toml"
+    ],
+    // Файлы и папки для исключения
+    "files.exclude": {
+        "**/__pycache__": true,
+        "**/*.pyc": true,
+        ".pytest_cache": true,
+        ".ruff_cache": true,
+        ".mypy_cache": true,
+        "htmlcov": false
+    },
+    // Автосохранение
+    "files.autoSave": "afterDelay",
+    "files.autoSaveDelay": 1000
+}
