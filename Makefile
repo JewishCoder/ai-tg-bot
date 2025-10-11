@@ -1,4 +1,4 @@
-.PHONY: help install run docker-build docker-up docker-down docker-logs docker-restart clean test lint format pre-commit-install ci
+.PHONY: help install run docker-build docker-up docker-down docker-logs docker-restart clean test test-fast lint format pre-commit-install ci
 
 # Colors for output (works in some terminals)
 BLUE := \033[0;34m
@@ -40,8 +40,12 @@ run:
 	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run python -m src.main --env-file .env.development"
 
 test:
-	@echo "Running tests..."
-	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run pytest tests/"
+	@echo "Running tests with coverage..."
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run pytest tests/ --cov=src --cov-report=term-missing --cov-report=html"
+
+test-fast:
+	@echo "Running tests without coverage..."
+	@powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe' run pytest tests/ -v"
 
 lint:
 	@echo "Running linter and type checker..."
