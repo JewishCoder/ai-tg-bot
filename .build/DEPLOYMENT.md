@@ -60,16 +60,23 @@ Production версия бота **не требует `.env` файлов**. В
    - Если бот и PostgreSQL в одной Docker сети - используй имя контейнера в `DB_HOST`
    - Если в разных сетях - используй `host.docker.internal` или IP адрес
 
-3. **Создай базу данных и пользователя:**
+3. **Создай пользователя с правами на создание БД:**
    ```bash
    docker exec -it postgres-container psql -U postgres
    ```
    ```sql
+   -- Вариант A: Создать пользователя с правом на создание БД (рекомендуется)
+   CREATE USER botuser WITH PASSWORD 'your_secure_password' CREATEDB;
+   
+   -- Вариант B: Создать БД и пользователя вручную
    CREATE DATABASE ai_tg_bot;
    CREATE USER botuser WITH PASSWORD 'your_secure_password';
    GRANT ALL PRIVILEGES ON DATABASE ai_tg_bot TO botuser;
+   
    \q
    ```
+   
+   **Рекомендация:** Используй Вариант A - бот автоматически создаст БД при первом запуске
 
 4. **Обнови `.build/docker-compose.prod.yml`:**
    ```yaml
@@ -110,12 +117,22 @@ volumes:
   postgres_data:
 ```
 
-### Важно: Миграции БД
+### Важно: Автоматическое создание БД и миграции
 
-Бот **автоматически запускает миграции** при старте через `entrypoint.sh`. Это создаст все необходимые таблицы:
+Бот **автоматически проверяет и создаёт БД** при старте через `entrypoint.sh`:
+
+1. **Проверка существования БД**: `SELECT 1 FROM pg_database WHERE datname='ai_tg_bot'`
+2. **Создание БД если не существует**: `CREATE DATABASE ai_tg_bot`
+3. **Запуск миграций**: `alembic upgrade head`
+
+Миграции создадут все необходимые таблицы:
 - `users` - информация о пользователях
 - `messages` - история сообщений (с soft delete)
 - `user_settings` - настройки пользователей
+
+**Требования:**
+- Пользователь БД (`DB_USER`) должен иметь права на создание баз данных
+- Если прав нет - создай БД вручную (см. Вариант 1)
 
 ---
 

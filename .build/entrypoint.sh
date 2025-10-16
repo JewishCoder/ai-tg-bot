@@ -55,12 +55,33 @@ echo "📁 Data dir: /app/data"
 echo "📄 Logs dir: /app/logs"
 echo ""
 
+# Создание БД если её нет
+echo "🗄️  Checking database existence..."
+export PGPASSWORD="${DB_PASSWORD}"
+DB_EXISTS=$(psql -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USER:-botuser}" -d postgres -tAc "SELECT 1 FROM pg_database WHERE datname='${DB_NAME:-ai_tg_bot}'" 2>/dev/null || echo "0")
+
+if [ "$DB_EXISTS" = "1" ]; then
+    echo "✅ Database '${DB_NAME:-ai_tg_bot}' already exists"
+else
+    echo "📦 Creating database '${DB_NAME:-ai_tg_bot}'..."
+    if psql -h "${DB_HOST:-postgres}" -p "${DB_PORT:-5432}" -U "${DB_USER:-botuser}" -d postgres -c "CREATE DATABASE ${DB_NAME:-ai_tg_bot};" 2>/dev/null; then
+        echo "✅ Database created successfully"
+    else
+        echo "⚠️  Warning: Could not create database (might already exist or insufficient permissions)"
+        echo "   Please create database manually:"
+        echo "   CREATE DATABASE ${DB_NAME:-ai_tg_bot};"
+    fi
+fi
+unset PGPASSWORD
+echo ""
+
 # Запуск миграций БД
 echo "🗄️  Running database migrations..."
 if uv run alembic upgrade head; then
     echo "✅ Database migrations completed"
 else
     echo "❌ ERROR: Database migrations failed"
+    echo "   Please check that database exists and credentials are correct"
     exit 1
 fi
 echo ""

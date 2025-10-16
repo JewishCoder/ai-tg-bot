@@ -42,6 +42,7 @@ RUN apk add --no-cache \
     libffi \
     procps \
     su-exec \
+    postgresql-client \
     && rm -rf /var/cache/apk/*
 
 # Create non-root user for security
