@@ -270,7 +270,7 @@ class TestLLMClient:
         self, test_config: Config, sample_messages: list[dict[str, str]]
     ) -> None:
         """
-        Тест: обработка ответа без choices.
+        Тест: обработка ответа с пустым списком choices.
 
         Args:
             test_config: Тестовая конфигурация
@@ -279,7 +279,7 @@ class TestLLMClient:
         llm_client = LLMClient(test_config)
         user_id = 12345
 
-        # Создаём mock без choices
+        # Создаём mock с пустым списком choices
         mock_client = AsyncMock()
         mock_completion = AsyncMock()
         mock_completion.choices = []
@@ -287,12 +287,73 @@ class TestLLMClient:
         mock_client.chat.completions.create.return_value = mock_completion
         llm_client.client = mock_client
 
-        # Ожидаем LLMAPIError из-за IndexError при доступе к choices[0]
+        # Ожидаем LLMAPIError с валидационной ошибкой
         with pytest.raises(LLMAPIError) as exc_info:
             await llm_client.generate_response(sample_messages, user_id)
 
-        # Ошибка будет "Unexpected error: list index out of range"
-        assert "Unexpected error" in str(exc_info.value) or "list index" in str(exc_info.value)
+        # Ошибка будет явно говорить о проблеме
+        assert "no choices in response" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_none_choices_in_response(
+        self, test_config: Config, sample_messages: list[dict[str, str]]
+    ) -> None:
+        """
+        Тест: обработка ответа где choices это None.
+
+        Args:
+            test_config: Тестовая конфигурация
+            sample_messages: Примеры сообщений
+        """
+        llm_client = LLMClient(test_config)
+        user_id = 12345
+
+        # Создаём mock где choices = None
+        mock_client = AsyncMock()
+        mock_completion = AsyncMock()
+        mock_completion.choices = None
+
+        mock_client.chat.completions.create.return_value = mock_completion
+        llm_client.client = mock_client
+
+        # Ожидаем LLMAPIError с валидационной ошибкой
+        with pytest.raises(LLMAPIError) as exc_info:
+            await llm_client.generate_response(sample_messages, user_id)
+
+        # Ошибка будет явно говорить о проблеме
+        assert "no choices in response" in str(exc_info.value)
+
+    @pytest.mark.asyncio
+    async def test_none_message_in_choice(
+        self, test_config: Config, sample_messages: list[dict[str, str]]
+    ) -> None:
+        """
+        Тест: обработка ответа где message в choice это None.
+
+        Args:
+            test_config: Тестовая конфигурация
+            sample_messages: Примеры сообщений
+        """
+        llm_client = LLMClient(test_config)
+        user_id = 12345
+
+        # Создаём mock где choices[0].message = None
+        mock_client = AsyncMock()
+        mock_choice = AsyncMock()
+        mock_choice.message = None
+
+        mock_completion = AsyncMock()
+        mock_completion.choices = [mock_choice]
+
+        mock_client.chat.completions.create.return_value = mock_completion
+        llm_client.client = mock_client
+
+        # Ожидаем LLMAPIError с валидационной ошибкой
+        with pytest.raises(LLMAPIError) as exc_info:
+            await llm_client.generate_response(sample_messages, user_id)
+
+        # Ошибка будет явно говорить о проблеме
+        assert "no message in choice" in str(exc_info.value)
 
     @pytest.mark.asyncio
     async def test_usage_logging(

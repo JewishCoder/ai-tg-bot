@@ -80,6 +80,22 @@ class LLMClient:
 
                 elapsed_time = time.time() - start_time
 
+                # Валидируем структуру ответа
+                if not response.choices:
+                    logger.error(
+                        f"Invalid response structure for user {user_id}: "
+                        f"response.choices is {'None' if response.choices is None else 'empty'}. "
+                        f"Full response: {response}"
+                    )
+                    raise LLMAPIError("Invalid response from LLM API: no choices in response")
+
+                if not response.choices[0].message:
+                    logger.error(
+                        f"Invalid response structure for user {user_id}: "
+                        f"response.choices[0].message is None. Full response: {response}"
+                    )
+                    raise LLMAPIError("Invalid response from LLM API: no message in choice")
+
                 # Извлекаем ответ
                 assistant_message = response.choices[0].message.content
 
@@ -232,6 +248,26 @@ class LLMClient:
                 )
 
                 elapsed_time = time.time() - start_time
+
+                # Валидируем структуру ответа
+                if not response.choices:
+                    logger.error(
+                        f"Invalid fallback response structure for user {user_id}: "
+                        f"response.choices is {'None' if response.choices is None else 'empty'}. "
+                        f"Full response: {response}"
+                    )
+                    raise LLMAPIError(
+                        "Invalid response from fallback LLM API: no choices in response"
+                    )
+
+                if not response.choices[0].message:
+                    logger.error(
+                        f"Invalid fallback response structure for user {user_id}: "
+                        f"response.choices[0].message is None. Full response: {response}"
+                    )
+                    raise LLMAPIError(
+                        "Invalid response from fallback LLM API: no message in choice"
+                    )
 
                 # Извлекаем ответ
                 assistant_message = response.choices[0].message.content
