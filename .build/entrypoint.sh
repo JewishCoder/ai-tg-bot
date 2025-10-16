@@ -17,6 +17,11 @@ if [ -z "$OPENROUTER_API_KEY" ]; then
     exit 1
 fi
 
+if [ -z "$DB_PASSWORD" ]; then
+    echo "❌ ERROR: DB_PASSWORD environment variable is not set"
+    exit 1
+fi
+
 echo "✅ Environment variables validated"
 
 # Создание директорий если их нет
@@ -48,6 +53,16 @@ echo ""
 echo "✅ Directories ready"
 echo "📁 Data dir: /app/data"
 echo "📄 Logs dir: /app/logs"
+echo ""
+
+# Запуск миграций БД
+echo "🗄️  Running database migrations..."
+if uv run alembic upgrade head; then
+    echo "✅ Database migrations completed"
+else
+    echo "❌ ERROR: Database migrations failed"
+    exit 1
+fi
 echo ""
 
 # Запуск основного приложения

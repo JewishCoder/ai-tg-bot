@@ -29,16 +29,28 @@ services:
       # === ОБЯЗАТЕЛЬНЫЕ ПАРАМЕТРЫ ===
       - TELEGRAM_TOKEN=your_telegram_bot_token_here
       - OPENROUTER_API_KEY=your_openrouter_api_key_here
+      - DB_PASSWORD=your_db_password_here
       
-      # === ОПЦИОНАЛЬНЫЕ ПАРАМЕТРЫ ===
+      # === БАЗА ДАННЫХ ===
+      # Укажи параметры подключения к PostgreSQL на виртуальной машине
+      - DB_HOST=postgres                    # Имя контейнера PostgreSQL или host.docker.internal
+      - DB_PORT=5432
+      - DB_NAME=ai_tg_bot
+      - DB_USER=botuser
+      - DB_ECHO=False
+      
+      # === LLM ПАРАМЕТРЫ ===
       - OPENROUTER_BASE_URL=https://openrouter.ai/api/v1
       - OPENROUTER_MODEL=anthropic/claude-3.5-sonnet
+      - OPENROUTER_FALLBACK_MODEL=meta-llama/llama-3.1-8b-instruct:free
       - SYSTEM_PROMPT=Ты полезный ассистент. Отвечай на вопросы пользователей четко и по делу.
       - LLM_TEMPERATURE=0.7
       - LLM_MAX_TOKENS=1000
       - MAX_HISTORY_MESSAGES=50
       - RETRY_ATTEMPTS=3
       - RETRY_DELAY=1.0
+      
+      # === ДИРЕКТОРИИ ===
       - DATA_DIR=data
       - LOGS_DIR=logs
       - LOG_LEVEL=INFO

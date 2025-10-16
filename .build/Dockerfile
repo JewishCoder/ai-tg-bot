@@ -59,6 +59,10 @@ COPY --from=builder /app/.venv /app/.venv
 COPY --chown=bot:bot src/ ./src/
 COPY --chown=bot:bot README.md VERSION ./
 
+# Copy Alembic configuration and migrations
+COPY --chown=bot:bot alembic.ini ./
+COPY --chown=bot:bot alembic/ ./alembic/
+
 # Copy entrypoint script
 COPY .build/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
