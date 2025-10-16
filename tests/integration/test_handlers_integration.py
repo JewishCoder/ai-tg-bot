@@ -18,6 +18,7 @@ from src.llm_client import LLMAPIError
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_start_command(mock_message: AsyncMock) -> None:
     """Тест: команда /start отправляет приветствие."""
     await handle_start(mock_message)
@@ -34,6 +35,7 @@ async def test_handle_start_command(mock_message: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_help_command(mock_message: AsyncMock) -> None:
     """Тест: команда /help отправляет справку."""
     await handle_help(mock_message)
@@ -50,6 +52,7 @@ async def test_handle_help_command(mock_message: AsyncMock) -> None:
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_role_without_args(
     mock_message: AsyncMock, mock_bot: AsyncMock, mock_storage: AsyncMock, test_config: Config
 ) -> None:
@@ -65,6 +68,7 @@ async def test_handle_role_without_args(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_role_default(
     mock_message: AsyncMock, mock_bot: AsyncMock, mock_storage: AsyncMock, test_config: Config
 ) -> None:
@@ -85,6 +89,7 @@ async def test_handle_role_default(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_role_custom(
     mock_message: AsyncMock, mock_bot: AsyncMock, mock_storage: AsyncMock, test_config: Config
 ) -> None:
@@ -106,6 +111,7 @@ async def test_handle_role_custom(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_status_command(
     mock_message: AsyncMock, mock_bot: AsyncMock, mock_storage: AsyncMock, test_config: Config
 ) -> None:
@@ -122,6 +128,7 @@ async def test_handle_status_command(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_reset_command(
     mock_message: AsyncMock, mock_bot: AsyncMock, mock_storage: AsyncMock, test_config: Config
 ) -> None:
@@ -139,6 +146,7 @@ async def test_handle_reset_command(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_full_cycle(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -164,6 +172,7 @@ async def test_handle_message_full_cycle(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_with_existing_history(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -209,6 +218,7 @@ async def test_handle_message_with_existing_history(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_llm_error(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -235,6 +245,7 @@ async def test_handle_message_llm_error(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_long_response(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -264,6 +275,7 @@ async def test_handle_message_long_response(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_custom_system_prompt(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -292,6 +304,7 @@ async def test_handle_message_custom_system_prompt(
 
 
 @pytest.mark.asyncio
+@pytest.mark.integration
 async def test_handle_message_chat_action(
     mock_message: AsyncMock,
     mock_bot: AsyncMock,
@@ -316,6 +329,7 @@ async def test_handle_message_chat_action(
     assert call_kwargs["chat_id"] == mock_message.chat.id
 
 
+@pytest.mark.integration
 class TestHandlersFallbackIntegration:
     """Интеграционные тесты fallback механизма."""
 

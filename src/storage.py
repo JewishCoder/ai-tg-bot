@@ -443,9 +443,17 @@ class Storage:
             return {
                 "messages_count": messages_count,
                 "system_prompt": settings.system_prompt,
+                "max_history_messages": settings.max_history_messages,
+                "created_at": settings.created_at.isoformat() if settings.created_at else None,
                 "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
             }
 
         except Exception as e:
             logger.error(f"User {user_id}: failed to load dialog info: {e}", exc_info=True)
-            return {"messages_count": 0, "system_prompt": None, "updated_at": None}
+            return {
+                "messages_count": 0,
+                "system_prompt": None,
+                "max_history_messages": 0,
+                "created_at": None,
+                "updated_at": None,
+            }

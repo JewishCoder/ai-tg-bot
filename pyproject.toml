@@ -52,6 +52,9 @@ ignore_missing_imports = true
 [tool.pytest.ini_options]
 asyncio_mode = "auto"
 testpaths = ["tests"]
+markers = [
+    "integration: marks tests as integration tests with real database (deselect with '-m \"not integration\"')",
+]
 
 [tool.coverage.run]
 omit = [
@@ -76,5 +79,7 @@ requires = ["hatchling"]
 build-backend = "hatchling.build"
 
 [dependency-groups]
-dev = []
+dev = [
+    "aiosqlite>=0.21.0",
+]
 
