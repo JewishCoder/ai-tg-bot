@@ -3,7 +3,7 @@
 from datetime import datetime
 from uuid import UUID, uuid4
 
-from sqlalchemy import BigInteger, ForeignKey, Integer, String, Text
+from sqlalchemy import BigInteger, ForeignKey, Index, Integer, String, Text
 from sqlalchemy.dialects.postgresql import TIMESTAMP
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column, relationship
 from sqlalchemy.sql import func
@@ -67,6 +67,16 @@ class Message(Base):
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="messages")
+
+    # Indexes
+    __table_args__ = (
+        Index(
+            "ix_messages_user_deleted_created",
+            "user_id",
+            "deleted_at",
+            "created_at",
+        ),
+    )
 
 
 class UserSettings(Base):

@@ -3,9 +3,9 @@
 import logging
 from datetime import UTC, datetime
 from typing import Any
-from uuid import uuid4
+from uuid import UUID, uuid4
 
-from sqlalchemy import delete, select, update
+from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
 from src.config import Config
@@ -107,9 +107,10 @@ class Storage:
                 result = await session.execute(stmt)
                 messages = result.scalars().all()
 
-                # Конвертируем в формат словарей
+                # Конвертируем в формат словарей с UUID
                 history = [
                     {
+                        "id": str(msg.id),
                         "role": msg.role,
                         "content": msg.content,
                         "timestamp": msg.created_at.isoformat(),
@@ -126,38 +127,72 @@ class Storage:
 
     async def save_history(self, user_id: int, messages: list[dict[str, str]]) -> None:
         """
-        Сохраняет историю диалога пользователя в БД.
+        Сохраняет историю диалога пользователя в БД (инкрементально).
 
+        Обновляет существующие сообщения и добавляет только новые.
         Автоматически применяет soft delete к старым сообщениям при превышении лимита.
         Всегда сохраняет системный промпт (первое сообщение с role="system").
 
         Args:
             user_id: ID пользователя Telegram
-            messages: Список сообщений для сохранения
+            messages: Список сообщений для сохранения (с полем "id" для существующих)
         """
         await self._ensure_user_exists(user_id)
 
         try:
-            # Получаем лимит для данного пользователя
-            settings = await self._get_user_settings(user_id)
-            max_messages = settings.max_history_messages
-
             async with self.db.session() as session:
-                # Получаем текущее количество активных сообщений
-                count_stmt = select(Message).where(
+                # Получаем настройки пользователя ВНУТРИ транзакции (исправление задачи 1.3)
+                settings_stmt = select(UserSettings).where(UserSettings.user_id == user_id)
+                settings_result = await session.execute(settings_stmt)
+                settings = settings_result.scalar_one()
+                max_messages = settings.max_history_messages
+
+                # Получаем все существующие UUID активных сообщений
+                existing_ids_stmt = select(Message.id).where(
                     Message.user_id == user_id, Message.deleted_at.is_(None)
                 )
-                result = await session.execute(count_stmt)
-                current_messages = result.scalars().all()
-                current_count = len(current_messages)
+                existing_result = await session.execute(existing_ids_stmt)
+                existing_uuids = {str(row[0]) for row in existing_result.all()}
 
-                # Вычисляем сколько новых сообщений добавим
-                new_messages_count = len(messages) - current_count
+                # Инкрементально обрабатываем сообщения
+                new_messages_count = 0
+                updated_messages_count = 0
 
-                # Если превышаем лимит, помечаем старые сообщения как удалённые (кроме system)
-                if current_count + new_messages_count > max_messages:
-                    # Сколько сообщений нужно удалить
-                    to_delete_count = (current_count + new_messages_count) - max_messages
+                for msg in messages:
+                    msg_id_str = msg.get("id")
+
+                    if msg_id_str and msg_id_str in existing_uuids:
+                        # ОБНОВЛЯЕМ существующее сообщение
+                        msg_uuid = UUID(msg_id_str)
+                        update_stmt = (
+                            update(Message)
+                            .where(Message.id == msg_uuid)
+                            .values(
+                                content=msg["content"],
+                                content_length=len(msg["content"]),
+                            )
+                        )
+                        await session.execute(update_stmt)
+                        updated_messages_count += 1
+                    else:
+                        # СОЗДАЁМ новое сообщение
+                        new_message = Message(
+                            id=uuid4(),
+                            user_id=user_id,
+                            role=msg["role"],
+                            content=msg["content"],
+                            content_length=len(msg["content"]),
+                            created_at=datetime.fromisoformat(
+                                msg.get("timestamp", datetime.now(UTC).isoformat())
+                            ),
+                        )
+                        session.add(new_message)
+                        new_messages_count += 1
+
+                # Применяем soft delete если превышен лимит
+                total_active_count = len(existing_uuids) + new_messages_count
+                if total_active_count > max_messages:
+                    to_delete_count = total_active_count - max_messages
 
                     # Получаем самые старые сообщения (исключая system промпт)
                     old_messages_stmt = (
@@ -186,26 +221,10 @@ class Storage:
                             f"User {user_id}: soft deleted {len(old_messages)} old messages"
                         )
 
-                # Удаляем все текущие сообщения из БД перед вставкой новых
-                # (это полное перезаписывание истории при каждом save)
-                delete_stmt = delete(Message).where(Message.user_id == user_id)
-                await session.execute(delete_stmt)
-
-                # Вставляем все сообщения
-                for msg in messages:
-                    message = Message(
-                        id=uuid4(),
-                        user_id=user_id,
-                        role=msg["role"],
-                        content=msg["content"],
-                        content_length=len(msg["content"]),
-                        created_at=datetime.fromisoformat(
-                            msg.get("timestamp", datetime.now(UTC).isoformat())
-                        ),
-                    )
-                    session.add(message)
-
-            logger.info(f"User {user_id}: saved history with {len(messages)} messages")
+            logger.info(
+                f"User {user_id}: saved history - "
+                f"{new_messages_count} new, {updated_messages_count} updated"
+            )
 
         except Exception as e:
             logger.error(f"User {user_id}: failed to save history: {e}", exc_info=True)

@@ -182,6 +182,8 @@ class TestLLMClient:
             test_config: Тестовая конфигурация
             sample_messages: Примеры сообщений
         """
+        # Отключаем fallback для этого теста, чтобы проверить только retry механизм
+        test_config.openrouter_fallback_model = None
         llm_client = LLMClient(test_config)
         user_id = 12345
 
@@ -202,7 +204,7 @@ class TestLLMClient:
             await llm_client.generate_response(sample_messages, user_id)
 
         assert "Rate limit exceeded" in str(exc_info.value)
-        # По умолчанию 3 попытки в конфиге
+        # По умолчанию 3 попытки в конфиге (без fallback)
         assert mock_client.chat.completions.create.call_count == test_config.retry_attempts
 
     @pytest.mark.asyncio

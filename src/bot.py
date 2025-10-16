@@ -11,6 +11,7 @@ from src.config import Config
 from src.database import Database
 from src.handlers import commands, messages
 from src.llm_client import LLMClient
+from src.middlewares import RateLimitMiddleware
 from src.storage import Storage
 
 logger = logging.getLogger(__name__)
@@ -39,8 +40,20 @@ class Bot:
         self.database = Database(config)
         self.llm_client = LLMClient(config)
         self.storage = Storage(self.database, config)
+        self._register_middlewares()
         self._register_handlers()
         logger.info("Bot initialized")
+
+    def _register_middlewares(self) -> None:
+        """Регистрация middleware."""
+        # Rate limiting middleware
+        rate_limiter = RateLimitMiddleware(
+            rate=self.config.rate_limit_requests,
+            per=self.config.rate_limit_period,
+            enabled=self.config.rate_limit_enabled,
+        )
+        self.dp.message.middleware(rate_limiter)
+        logger.info("Middlewares registered")
 
     def _register_handlers(self) -> None:
         """Регистрация обработчиков команд и сообщений."""

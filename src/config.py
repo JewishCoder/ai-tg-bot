@@ -52,6 +52,17 @@ class Config(BaseSettings):
         default=1.0, ge=0.1, description="Delay between retry attempts in seconds"
     )
 
+    # Rate Limiting
+    rate_limit_enabled: bool = Field(
+        default=True, description="Enable rate limiting for user requests"
+    )
+    rate_limit_requests: int = Field(
+        default=10, ge=1, description="Maximum number of requests per period"
+    )
+    rate_limit_period: float = Field(
+        default=60.0, ge=1.0, description="Rate limit period in seconds"
+    )
+
     # Directories
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")

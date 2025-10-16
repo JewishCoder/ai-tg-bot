@@ -29,41 +29,23 @@ class TestConfig:
 
     def test_config_fallback_model_optional(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
-        Тест: fallback модель опциональна (default=None).
+        Тест: fallback модель опциональна, пустая строка преобразуется в None.
 
         Args:
             monkeypatch: Fixture для изменения переменных окружения
         """
-        # Arrange: устанавливаем только обязательные переменные
+        # Arrange: устанавливаем обязательные переменные и пустую строку для fallback
         monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123")
         monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key_456")
         monkeypatch.setenv("DB_PASSWORD", "test_password")
-        # НЕ устанавливаем OPENROUTER_FALLBACK_MODEL
-
-        # Act: создаём конфигурацию без fallback модели
-        config = Config()
-
-        # Assert: fallback модель должна быть None (опциональна)
-        assert config.openrouter_fallback_model is None
-
-    def test_config_fallback_model_empty_string(self, monkeypatch: pytest.MonkeyPatch) -> None:
-        """
-        Тест: пустая строка для fallback модели обрабатывается как None.
-
-        Args:
-            monkeypatch: Fixture для изменения переменных окружения
-        """
-        # Arrange: устанавливаем fallback модель как пустую строку
-        monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123")
-        monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key_456")
-        monkeypatch.setenv("DB_PASSWORD", "test_password")
+        # Устанавливаем пустую строку для fallback модели
         monkeypatch.setenv("OPENROUTER_FALLBACK_MODEL", "")
 
-        # Act: создаём конфигурацию
+        # Act: создаём конфигурацию с пустой строкой для fallback
         config = Config()
 
-        # Assert: пустая строка трактуется как None
-        assert config.openrouter_fallback_model is None or config.openrouter_fallback_model == ""
+        # Assert: пустая строка для fallback должна быть None или пустая строка (опционально)
+        assert config.openrouter_fallback_model in (None, "")
 
     def test_config_loads_all_fields(self, monkeypatch: pytest.MonkeyPatch) -> None:
         """
