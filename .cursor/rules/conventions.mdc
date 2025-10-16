@@ -1,5 +1,5 @@
 ---
-alwaysApply: false
+alwaysApply: true
 ---
 # Правила разработки для Code Ассистента
 
@@ -49,7 +49,15 @@ alwaysApply: false
 - aiogram 3.x (Telegram Bot API)
 - openai (для OpenRouter API)
 - pydantic (валидация)
-- python-dotenv (конфигурация)
+- pydantic-settings (конфигурация из .env)
+- python-dotenv (загрузка переменных окружения)
+
+### Database и ORM
+- PostgreSQL - основное хранилище данных
+- SQLAlchemy 2.0 (async) - ORM для работы с PostgreSQL
+- asyncpg - асинхронный драйвер PostgreSQL
+- Alembic - система миграций базы данных
+- aiofiles - асинхронная работа с файлами (если нужно)
 
 ### Минимализм зависимостей
 - Только необходимые библиотеки
@@ -103,15 +111,21 @@ alwaysApply: false
 ### Компоненты (примеры из vision.md)
 - `bot.py` → класс `Bot`
 - `llm_client.py` → класс `LLMClient`
-- `message_handler.py` → класс `MessageHandler`
-- `storage.py` → класс `Storage`
+- `storage.py` → класс `Storage` (работа с PostgreSQL)
+- `database.py` → управление подключением к БД и сессиями
+- `models.py` → SQLAlchemy модели (User, Message, UserSettings)
 - `config.py` → класс `Config`
+- `handlers/commands.py` → обработчики команд (/start, /help, /role, /status, /reset)
+- `handlers/messages.py` → обработчик текстовых сообщений
+- `utils/message_splitter.py` → разбивка длинных сообщений
+- `utils/error_formatter.py` → форматирование ошибок
 
 ### Организация
 - Все исходники в `src/`
 - Данные в `data/`
 - Логи в `logs/`
 - Документация в `docs/`
+- Миграции БД в `alembic/versions/`
 
 ## Обработка ошибок
 
@@ -126,6 +140,91 @@ alwaysApply: false
 - Валидация через Pydantic
 - Без секретов в коде и git
 - Поддержка `--env-file` аргумента
+
+## Database миграции
+
+### Alembic - система миграций
+
+Все изменения схемы БД управляются через Alembic миграции.
+
+### Команды миграций (через Makefile)
+
+**Применить все миграции:**
+```powershell
+make db-migrate
+```
+
+**Откатить последнюю миграцию:**
+```powershell
+make db-rollback
+```
+
+**Создать новую миграцию:**
+```powershell
+make db-revision message="Add new column to users"
+```
+
+**Показать текущую версию БД:**
+```powershell
+make db-current
+```
+
+### Команды через UV напрямую:
+
+```powershell
+# Применить миграции
+& "$env:USERPROFILE\.local\bin\uv.exe" run alembic upgrade head
+
+# Создать миграцию
+& "$env:USERPROFILE\.local\bin\uv.exe" run alembic revision --autogenerate -m "your message"
+
+# Откатить
+& "$env:USERPROFILE\.local\bin\uv.exe" run alembic downgrade -1
+```
+
+### Принципы работы с БД
+
+**Async SQLAlchemy 2.0:**
+- Все операции с БД через async/await
+- Используем AsyncSession для всех запросов
+- Контекстный менеджер для автоматического закрытия сессий
+
+**Soft delete стратегия:**
+- Сообщения не удаляются физически из БД
+- При "удалении" устанавливается поле `deleted_at`
+- Активные сообщения имеют `deleted_at = NULL`
+- Запросы всегда фильтруют по `deleted_at.is_(None)`
+
+**Timezone-aware timestamps:**
+- Все datetime поля с timezone (TIMESTAMP WITH TIME ZONE)
+- Используем `func.now()` для автоматических timestamp
+- Поле `updated_at` обновляется автоматически через `onupdate=func.now()`
+
+**Управляемые лимиты:**
+- Каждый пользователь имеет свой лимит истории в `user_settings.max_history_messages`
+- Значение по умолчанию берется из конфигурации
+- При превышении лимита старые сообщения помечаются как удаленные (soft delete)
+
+### Модели данных
+
+**User** - информация о пользователях:
+- `id` (BigInteger) - Telegram user ID
+- `created_at`, `updated_at` - timestamps с timezone
+
+**Message** - история сообщений с soft delete:
+- `id` (UUID) - уникальный идентификатор
+- `user_id` - связь с User
+- `role` (user/assistant/system) - роль сообщения
+- `content` - текст сообщения
+- `content_length` - длина сообщения
+- `created_at` - когда создано
+- `deleted_at` - когда помечено удаленным (NULL для активных)
+
+**UserSettings** - настройки пользователей:
+- `user_id` - связь с User (primary key)
+- `max_history_messages` - лимит истории для пользователя
+- `system_prompt` - кастомный системный промпт
+- `created_at`, `updated_at` - timestamps
 
 ## Качество кода
 
@@ -231,24 +330,33 @@ make test-fast
 
 ✅ **Правильно:**
 ```python
-# Нативный async I/O
-import aiofiles
+# Async SQLAlchemy для работы с БД
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
+from src.models import Message
 
-async def save_data(path: Path, data: dict) -> None:
-    async with aiofiles.open(path, "w") as f:
-        await f.write(json.dumps(data))
+async def get_user_messages(
+    session: AsyncSession, 
+    user_id: int
+) -> list[Message]:
+    """Получить активные сообщения пользователя."""
+    result = await session.execute(
+        select(Message)
+        .where(Message.user_id == user_id)
+        .where(Message.deleted_at.is_(None))  # Soft delete
+        .order_by(Message.created_at)
+    )
+    return list(result.scalars().all())
 ```
 
 ❌ **Неправильно:**
 ```python
-# Блокирующий I/O через run_in_executor
-def _save_sync(path, data):
-    with open(path, "w") as f:
-        json.dump(data, f)
+# Блокирующий sync SQLAlchemy
+from sqlalchemy.orm import Session
 
-async def save_data(path, data):
-    loop = asyncio.get_event_loop()
-    await loop.run_in_executor(None, self._save_sync, path, data)
+def get_user_messages(session: Session, user_id: int):
+    # Блокирует event loop!
+    return session.query(Message).filter_by(user_id=user_id).all()
 ```
 
 ### 2. DRY (Don't Repeat Yourself)
@@ -262,7 +370,7 @@ async def save_data(path, data):
 
 **S - Single Responsibility:**
 - Один класс/функция = одна задача
-- Пример: `Storage` только для работы с файлами, `LLMClient` только для LLM API
+- Пример: `Storage` только для работы с PostgreSQL, `LLMClient` только для LLM API, `Database` только для управления подключениями
 
 **O - Open/Closed:**
 - Открыт для расширения, закрыт для модификации
@@ -304,7 +412,14 @@ except Exception as e:
 Всегда используйте context managers для ресурсов:
 
 ```python
-# Файлы
+# Database сессии (async SQLAlchemy)
+from src.database import get_async_session
+
+async with get_async_session() as session:
+    result = await session.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+
+# Файлы (если нужно)
 async with aiofiles.open(path, "r") as f:
     content = await f.read()
 
@@ -355,7 +470,9 @@ if (value := get_value()) is not None:
 - ❌ Оверинжиниринг и избыточная абстракция
 - ❌ Классы с множественной ответственностью
 - ❌ Глубокая вложенность директорий
-- ❌ Синхронный код для I/O операций
+- ❌ Синхронный код для I/O операций (файлы, БД, HTTP)
+- ❌ Sync SQLAlchemy вместо async (блокирует event loop!)
+- ❌ Физическое удаление данных (используем soft delete)
 - ❌ Неявная обработка ошибок
 - ❌ Код без type hints
 - ❌ Публичные методы без docstrings
@@ -364,10 +481,11 @@ if (value := get_value()) is not None:
 - ❌ Использование `print()` вместо `logging`
 - ❌ Игнорирование предупреждений mypy
 - ❌ Захардкоженные значения вместо конфигурации
+- ❌ Миграции БД без Alembic (прямое изменение схемы)
 
 ## Примеры
 
-### ✅ Правильно
+### ✅ Правильно - LLM Client
 ```python
 class LLMClient:
     """Клиент для работы с LLM через OpenRouter API."""
@@ -393,6 +511,46 @@ class LLMClient:
         # Реализация
 ```
 
+### ✅ Правильно - Storage с soft delete
+```python
+class Storage:
+    """Хранилище диалогов в PostgreSQL с soft delete."""
+    
+    async def delete_old_messages(
+        self,
+        session: AsyncSession,
+        user_id: int,
+        keep_count: int
+    ) -> int:
+        """
+        Soft delete старых сообщений, оставляя только последние keep_count.
+        
+        Args:
+            session: Async SQLAlchemy сессия
+            user_id: ID пользователя
+            keep_count: Сколько последних сообщений оставить
+            
+        Returns:
+            Количество помеченных как удаленные сообщений
+        """
+        # Soft delete через установку deleted_at
+        old_messages = await session.execute(
+            select(Message)
+            .where(Message.user_id == user_id)
+            .where(Message.deleted_at.is_(None))
+            .order_by(Message.created_at.desc())
+            .offset(keep_count)
+        )
+        
+        deleted_count = 0
+        for msg in old_messages.scalars():
+            msg.deleted_at = func.now()
+            deleted_count += 1
+            
+        await session.commit()
+        return deleted_count
+```
+
 ### ❌ Неправильно
 ```python
 class Bot:
@@ -400,6 +558,12 @@ class Bot:
     def process(self, msg):
         # Обработка сообщения, работа с LLM, сохранение в Storage
         # всё в одном методе на 200 строк
+        
+        # Физическое удаление (❌)
+        session.delete(message)
+        
+        # Sync SQLAlchemy (❌)
+        messages = session.query(Message).all()
 ```
 
 ## Для подробностей
