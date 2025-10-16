@@ -5,6 +5,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.config import Config
+from src.database import Database
 from src.handlers.commands import (
     handle_help,
     handle_reset,
@@ -324,6 +325,7 @@ class TestHandlersFallbackIntegration:
         mock_message: AsyncMock,
         mock_bot: AsyncMock,
         test_config: Config,
+        test_db_real: "Database",
     ) -> None:
         """
         Тест: хендлер использует fallback модель при провале основной.
@@ -332,16 +334,17 @@ class TestHandlersFallbackIntegration:
             mock_message: Mock сообщения от пользователя
             mock_bot: Mock бота
             test_config: Тестовая конфигурация
+            test_db_real: Реальная тестовая БД
         """
         # Arrange: настраиваем fallback модель
         test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
 
-        # Создаём реальные компоненты
+        # Создаём реальные компоненты с реальной БД
         from src.llm_client import LLMClient
         from src.storage import Storage
 
         llm_client = LLMClient(test_config)
-        storage = Storage(test_config)
+        storage = Storage(test_db_real, test_config)
 
         mock_message.text = "Привет!"
 
@@ -381,6 +384,7 @@ class TestHandlersFallbackIntegration:
         mock_message: AsyncMock,
         mock_bot: AsyncMock,
         test_config: Config,
+        test_db_real: "Database",
     ) -> None:
         """
         Тест: хендлер обрабатывает провал обеих моделей.
@@ -389,6 +393,7 @@ class TestHandlersFallbackIntegration:
             mock_message: Mock сообщения от пользователя
             mock_bot: Mock бота
             test_config: Тестовая конфигурация
+            test_db_real: Реальная тестовая БД
         """
         # Arrange: настраиваем fallback модель
         test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
@@ -397,7 +402,7 @@ class TestHandlersFallbackIntegration:
         from src.storage import Storage
 
         llm_client = LLMClient(test_config)
-        storage = Storage(test_config)
+        storage = Storage(test_db_real, test_config)
 
         mock_message.text = "Тест"
 
@@ -441,6 +446,7 @@ class TestHandlersFallbackIntegration:
         mock_message: AsyncMock,
         mock_bot: AsyncMock,
         test_config: Config,
+        test_db_real: "Database",
     ) -> None:
         """
         Тест: полный флоу с Storage - fallback ответ сохраняется корректно.
@@ -457,7 +463,7 @@ class TestHandlersFallbackIntegration:
         from src.storage import Storage
 
         llm_client = LLMClient(test_config)
-        storage = Storage(test_config)
+        storage = Storage(test_db_real, test_config)
 
         user_id = 12345
         mock_message.from_user.id = user_id
@@ -507,6 +513,7 @@ class TestHandlersFallbackIntegration:
         mock_message: AsyncMock,
         mock_bot: AsyncMock,
         test_config: Config,
+        test_db_real: "Database",
     ) -> None:
         """
         Тест: fallback сохраняет контекст диалога.
@@ -523,7 +530,7 @@ class TestHandlersFallbackIntegration:
         from src.storage import Storage
 
         llm_client = LLMClient(test_config)
-        storage = Storage(test_config)
+        storage = Storage(test_db_real, test_config)
 
         user_id = 12345
         mock_message.from_user.id = user_id
@@ -594,6 +601,7 @@ class TestHandlersFallbackIntegration:
         mock_message: AsyncMock,
         mock_bot: AsyncMock,
         test_config: Config,
+        test_db_real: "Database",
     ) -> None:
         """
         Тест: пользователь НЕ видит технические детали fallback.
@@ -602,6 +610,7 @@ class TestHandlersFallbackIntegration:
             mock_message: Mock сообщения
             mock_bot: Mock бота
             test_config: Тестовая конфигурация
+            test_db_real: Реальная тестовая БД
         """
         # Arrange
         test_config.openrouter_fallback_model = "meta-llama/llama-3.1-8b-instruct:free"
@@ -610,7 +619,7 @@ class TestHandlersFallbackIntegration:
         from src.storage import Storage
 
         llm_client = LLMClient(test_config)
-        storage = Storage(test_config)
+        storage = Storage(test_db_real, test_config)
 
         mock_message.text = "Привет"
 

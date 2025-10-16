@@ -1,31 +1,62 @@
 services:
-  bot:
-    build:
-      context: .
-      dockerfile: Dockerfile.dev
-    container_name: ai-tg-bot
-    
-    # Volume mapping for persistent data
-    volumes:
-      - ./data:/app/data              # Dialog history
-      - ./logs:/app/logs              # Bot logs
-      - ./.env.development:/app/.env.development:ro  # Read-only config
-    
-    # Restart policy
-    restart: unless-stopped
-    
-    # Environment variables
+  postgres:
+    image: postgres:16-alpine
+    container_name: ai-tg-bot-db
     environment:
-      - PYTHONUNBUFFERED=1
-      - PYTHONDONTWRITEBYTECODE=1
-    
+      POSTGRES_USER: ${DB_USER:-botuser}
+      POSTGRES_PASSWORD: ${DB_PASSWORD}
+      POSTGRES_DB: ${DB_NAME:-ai_tg_bot}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    ports:
+      - "${DB_PORT:-5432}:5432"
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -U ${DB_USER:-botuser} -d ${DB_NAME:-ai_tg_bot}",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     # Logging configuration
     logging:
       driver: "json-file"
       options:
         max-size: "10m"
         max-file: "3"
-    
+
+  bot:
+    build:
+      context: .
+      dockerfile: Dockerfile.dev
+    container_name: ai-tg-bot
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+    # Volume mapping for persistent data
+    volumes:
+      - ./data:/app/data # Dialog history
+      - ./logs:/app/logs # Bot logs
+      - ./.env.development:/app/.env.development:ro # Read-only config
+
+    # Restart policy
+    restart: unless-stopped
+
+    # Environment variables
+    environment:
+      - PYTHONUNBUFFERED=1
+      - PYTHONDONTWRITEBYTECODE=1
+
+    # Logging configuration
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
     # Resource limits (optional, can be adjusted)
     # deploy:
     #   resources:
@@ -36,3 +67,5 @@ services:
     #       cpus: '0.25'
     #       memory: 128M
 
+volumes:
+  postgres_data:

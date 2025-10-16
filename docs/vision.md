@@ -37,15 +37,17 @@
 
 ### Хранение данных
 
-- **In-memory** хранилище для активных диалогов
-- **Файловая система** для персистентности (JSON файлы)
-- **Ограничение истории**: последние N сообщений на пользователя
+- **PostgreSQL** - основное хранилище для истории диалогов и настроек пользователей
+- **SQLAlchemy 2.0** - ORM с async поддержкой для работы с БД
+- **Alembic** - система миграций для версионирования схемы БД
+- **Soft delete** - стратегия удаления без физической потери данных
+- **Управляемые лимиты**: количество сообщений настраивается для каждого пользователя
 
 ### Окружение
 
 - **Polling** для получения обновлений от Telegram
-- **Docker** для разработки (опционально, приложение работает и без Docker)
-- Без внешней БД
+- **Docker** для разработки с PostgreSQL в Docker Compose
+- **PostgreSQL** - база данных для хранения истории и настроек
 
 ### Обоснование выбора
 
@@ -129,8 +131,10 @@ ai-tg-bot/
 │   ├── __init__.py
 │   ├── bot.py              # Основной класс бота (Bot)
 │   ├── config.py           # Конфигурация (Config)
+│   ├── database.py         # Database engine и session management
+│   ├── models.py           # SQLAlchemy модели (User, Message, UserSettings)
 │   ├── llm_client.py       # Клиент для работы с LLM (LLMClient)
-│   ├── storage.py          # Хранилище диалогов (Storage)
+│   ├── storage.py          # Хранилище диалогов в PostgreSQL (Storage)
 │   ├── main.py             # Точка входа
 │   ├── handlers/           # Обработчики команд и сообщений
 │   │   ├── __init__.py
@@ -140,21 +144,24 @@ ai-tg-bot/
 │       ├── __init__.py
 │       ├── message_splitter.py  # Разбивка длинных сообщений
 │       └── error_formatter.py   # Форматирование ошибок
-├── data/                   # JSON файлы с историей диалогов
+├── alembic/                # Директория миграций БД
+│   ├── env.py              # Конфигурация Alembic
+│   └── versions/           # Версии миграций
+├── data/                   # Директория для пользовательских данных
 │   └── .gitkeep
 ├── logs/                   # Логи приложения
 │   └── .gitkeep
 ├── docs/                   # Документация
 │   ├── idea.md
 │   ├── vision.md
-│   ├── tasklist.md
-│   └── techDebtTasklist.md
+│   ├── roadmap.md
+│   └── tasklists/
 ├── tests/                  # Unit-тесты
 │   ├── __init__.py
 │   ├── conftest.py         # Фикстуры
 │   ├── test_storage.py
 │   ├── test_llm_client.py
-│   └── test_handlers.py
+│   └── test_handlers_integration.py
 ├── .cursor/                # Cursor IDE правила
 │   └── rules/
 │       ├── conventions.mdc
@@ -164,8 +171,9 @@ ai-tg-bot/
 ├── .gitignore
 ├── .dockerignore           # Исключения для Docker
 ├── .pre-commit-config.yaml # Pre-commit hooks конфигурация
+├── alembic.ini             # Конфигурация Alembic
 ├── Dockerfile.dev          # Docker образ для разработки
-├── docker-compose.yml      # Docker Compose конфигурация
+├── docker-compose.yml      # Docker Compose с PostgreSQL
 ├── Makefile                # Команды для управления проектом
 ├── pyproject.toml          # uv конфигурация и зависимости
 └── README.md
@@ -177,16 +185,19 @@ ai-tg-bot/
 - **main.py** - точка входа, запуск приложения, парсинг CLI аргументов
 - **bot.py** - инициализация и запуск Telegram бота (упрощен до ~100 строк)
 - **config.py** - загрузка и валидация настроек из `.env`
+- **database.py** - управление подключением к PostgreSQL и сессиями SQLAlchemy
+- **models.py** - SQLAlchemy модели (User, Message, UserSettings) для работы с БД
 - **llm_client.py** - взаимодействие с OpenRouter API
-- **storage.py** - сохранение/загрузка истории диалогов в JSON (async I/O через aiofiles)
+- **storage.py** - сохранение/загрузка истории диалогов в PostgreSQL (async SQLAlchemy)
 - **handlers/commands.py** - обработчики команд (/start, /help, /role, /status, /reset)
 - **handlers/messages.py** - обработчик текстовых сообщений
 - **utils/message_splitter.py** - разбивка длинных сообщений на части
 - **utils/error_formatter.py** - форматирование сообщений об ошибках
 
 **Данные и логи:**
-- **data/** - директория для хранения JSON файлов с историей
+- **data/** - директория для хранения пользовательских данных (зарезервирована для будущего использования)
 - **logs/** - директория для файлов логов
+- **PostgreSQL** - основное хранилище истории диалогов и настроек пользователей
 
 **DevOps и конфигурация:**
 - **Dockerfile.dev** - Docker образ для разработки (Alpine-based)
@@ -231,10 +242,11 @@ ai-tg-bot/
 - Возвращает текст ответа
 
 #### 4. Storage
-- Загрузка истории диалога из JSON файла
-- Сохранение истории диалога в JSON файл
-- Ограничение количества сообщений в истории
-- Управление файлами по user_id
+- Загрузка истории диалога из PostgreSQL (только активные сообщения)
+- Сохранение истории диалога в PostgreSQL
+- Soft delete старых сообщений при превышении лимита
+- Управление настройками пользователей (лимиты, кастомные промпты)
+- Работа через Database layer с async SQLAlchemy
 
 #### 5. Config
 - Загрузка переменных окружения из .env
@@ -248,7 +260,7 @@ ai-tg-bot/
         ↓
     Bot (aiogram)
         ↓
-  MessageHandler ←→ Storage ←→ JSON файлы
+  MessageHandler ←→ Storage ←→ Database ←→ PostgreSQL
         ↓
    LLMClient
         ↓
@@ -331,18 +343,26 @@ ai-tg-bot/
 }
 ```
 
-### Хранение на диске
+### Хранение в базе данных
 
-- Один JSON файл на пользователя: `data/{user_id}.json`
-- Формат файла соответствует структуре Dialog
-- Timestamp в формате ISO 8601
-- Автоматическое обновление `updated_at` при каждом сохранении
+**Схема БД (PostgreSQL):**
+- **users** - информация о пользователях (id, created_at, updated_at)
+- **messages** - история сообщений с soft delete (id, user_id, role, content, content_length, created_at, deleted_at)
+- **user_settings** - настройки пользователей (user_id, max_history_messages, system_prompt, created_at, updated_at)
+
+**Особенности:**
+- Timestamp с timezone (TIMESTAMP WITH TIME ZONE)
+- Soft delete стратегия - сообщения не удаляются физически, помечаются deleted_at
+- Управляемые лимиты - каждый пользователь имеет свой лимит истории в user_settings
+- Автоматическое обновление `updated_at` через onupdate=func.now()
 
 ### Принципы работы с данными
 
-- Простая JSON сериализация/десериализация
-- Валидация через Pydantic модели
-- Ограничение истории для экономии памяти и токенов LLM
+- Async SQLAlchemy 2.0 для работы с БД
+- Alembic для миграций схемы
+- Soft delete для сохранения истории
+- Валидация через Pydantic модели (Config)
+- Ограничение истории для экономии памяти и токенов LLM (настраивается per-user)
 
 ---
 
@@ -681,10 +701,12 @@ python -m src.main
 - Non-root пользователь для безопасности
 
 **docker-compose.yml:**
-- Один сервис для бота
+- Два сервиса: PostgreSQL (БД) и bot (приложение)
+- PostgreSQL с persistent volume для данных
+- Healthcheck для PostgreSQL перед запуском бота
 - Автоматический restart при сбоях
 - Volume mapping для кода и данных
-- Переменные окружения из `.env`
+- Переменные окружения из `.env` (для Docker Compose) и `.env.development` (для приложения)
 
 ### Оптимизация контейнера
 
@@ -715,6 +737,12 @@ ci                # Запустить все проверки (format + lint)
 # Тестирование
 test              # Запустить тесты с coverage
 test-fast         # Запустить тесты без coverage
+
+# Database миграции
+db-migrate        # Применить все миграции (alembic upgrade head)
+db-rollback       # Откатить последнюю миграцию (alembic downgrade -1)
+db-revision       # Создать новую миграцию (требует message="...")
+db-current        # Показать текущую версию БД
 
 # Docker команды для разработки
 docker-build      # Собрать образ для разработки
@@ -938,9 +966,15 @@ make test    # Тесты с coverage
 Документ служит основой для разработки и постоянно дополняется по мере развития проекта. Следование этим принципам гарантирует создание качественного, поддерживаемого и расширяемого решения.
 
 **Добавлено в последнем обновлении:**
+- ✅ **Спринт S1 завершен**: Миграция с JSON на PostgreSQL
+- PostgreSQL + SQLAlchemy 2.0 async для хранения истории диалогов
+- Alembic для управления миграциями схемы БД
+- Soft delete стратегия - данные не удаляются физически
+- Управляемые лимиты истории для каждого пользователя (хранятся в БД)
+- Модели User, Message, UserSettings с timezone-aware timestamps
+- Docker Compose с PostgreSQL контейнером
 - Fallback механизм для повышения надежности
 - Автоматическое переключение на резервную модель при сбоях
-- Конфигурация резервной модели
 
-**Дата последнего обновления**: 2025-10-11
+**Дата последнего обновления**: 2025-10-16
 

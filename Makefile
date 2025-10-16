@@ -42,6 +42,12 @@ help:
 	@echo "  make test          - Run tests with coverage"
 	@echo "  make test-fast     - Run tests without coverage"
 	@echo ""
+	@echo "Database Migrations:"
+	@echo "  make db-migrate    - Apply all pending migrations"
+	@echo "  make db-rollback   - Rollback last migration"
+	@echo "  make db-revision   - Create new migration (use message='...')"
+	@echo "  make db-current    - Show current migration version"
+	@echo ""
 	@echo "Code Quality:"
 	@echo "  make format        - Format code with ruff"
 	@echo "  make lint          - Run linter and type checker"
@@ -95,6 +101,31 @@ pre-commit-install:
 
 ci: format lint
 	@echo "CI checks passed!"
+
+# ===== Database Migrations =====
+
+db-migrate:
+	@echo "Applying database migrations..."
+	@$(UV) run alembic upgrade head
+	@echo "Migrations applied successfully!"
+
+db-rollback:
+	@echo "Rolling back last migration..."
+	@$(UV) run alembic downgrade -1
+	@echo "Rollback completed!"
+
+db-revision:
+	@echo "Creating new migration..."
+ifndef message
+	@echo "Error: Please provide a migration message: make db-revision message='Your message here'"
+	@exit 1
+endif
+	@$(UV) run alembic revision --autogenerate -m "$(message)"
+	@echo "Migration created successfully!"
+
+db-current:
+	@echo "Current database version:"
+	@$(UV) run alembic current
 
 # ===== Docker Commands =====
 

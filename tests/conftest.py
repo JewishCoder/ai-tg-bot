@@ -1,5 +1,6 @@
 """Фикстуры для тестов."""
 
+from collections.abc import AsyncGenerator
 from pathlib import Path
 from typing import Any
 from unittest.mock import AsyncMock
@@ -7,6 +8,7 @@ from unittest.mock import AsyncMock
 import pytest
 
 from src.config import Config
+from src.database import Database
 
 
 @pytest.fixture
@@ -41,9 +43,74 @@ def test_config(temp_data_dir: Path, monkeypatch: pytest.MonkeyPatch) -> Config:
     monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123456:ABC-DEF1234ghIkl-zyx57W2v1u123ew11")
     monkeypatch.setenv("OPENROUTER_API_KEY", "test_openrouter_key_abc123")
     monkeypatch.setenv("DATA_DIR", str(temp_data_dir))
+    monkeypatch.setenv("DB_PASSWORD", "test")
 
     # Создаём и возвращаем конфигурацию
     return Config()
+
+
+@pytest.fixture
+def mock_database() -> AsyncMock:
+    """
+    Создаёт mock Database для unit-тестов Storage.
+
+    Returns:
+        AsyncMock объект Database с мокированным session context manager
+    """
+    database = AsyncMock(spec=Database)
+
+    # Мокируем session context manager
+    mock_session = AsyncMock()
+    mock_session.commit = AsyncMock()
+    mock_session.rollback = AsyncMock()
+    mock_session.execute = AsyncMock()
+    mock_session.add = AsyncMock()
+
+    # Настраиваем context manager
+    database.session.return_value.__aenter__.return_value = mock_session
+    database.session.return_value.__aexit__.return_value = None
+
+    return database
+
+
+@pytest.fixture
+async def test_db_real(test_config: Config) -> AsyncGenerator[Database, None]:
+    """
+    Создаёт реальную тестовую БД (SQLite in-memory) для интеграционных тестов.
+
+    Args:
+        test_config: Тестовая конфигурация
+
+    Yields:
+        Database с реальной БД для полной интеграции
+    """
+    from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
+
+    from src.models import Base  # Импорт Base здесь
+
+    # Создаём in-memory SQLite БД для интеграционных тестов
+    test_db = Database.__new__(Database)
+    test_db.config = test_config
+    test_db.engine = create_async_engine(
+        "sqlite+aiosqlite:///:memory:",
+        echo=False,
+    )
+    test_db.session_factory = async_sessionmaker(
+        test_db.engine,
+        class_=AsyncSession,
+        expire_on_commit=False,
+    )
+
+    # Создаём все таблицы
+    async with test_db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.create_all)
+
+    yield test_db
+
+    # Cleanup
+    async with test_db.engine.begin() as conn:
+        await conn.run_sync(Base.metadata.drop_all)
+    await test_db.engine.dispose()
 
 
 @pytest.fixture

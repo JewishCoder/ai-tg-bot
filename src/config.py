@@ -56,10 +56,28 @@ class Config(BaseSettings):
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")
 
+    # Database
+    db_host: str = Field(default="localhost", description="Database host")
+    db_port: int = Field(default=5432, description="Database port")
+    db_name: str = Field(default="ai_tg_bot", description="Database name")
+    db_user: str = Field(default="botuser", description="Database user")
+    db_password: str = Field(..., description="Database password")
+    db_echo: bool = Field(default=False, description="SQLAlchemy echo for debugging")
+
     # Logging
     log_level: str = Field(
         default="INFO", description="Logging level (DEBUG, INFO, WARNING, ERROR)"
     )
+
+    @property
+    def database_url(self) -> str:
+        """
+        Формирует URL для подключения к базе данных.
+
+        Returns:
+            URL строка для asyncpg драйвера PostgreSQL
+        """
+        return f"postgresql+asyncpg://{self.db_user}:{self.db_password}@{self.db_host}:{self.db_port}/{self.db_name}"
 
     model_config = {
         "env_file": ".env",

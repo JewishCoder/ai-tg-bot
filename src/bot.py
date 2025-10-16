@@ -8,6 +8,7 @@ from aiogram import Dispatcher
 from aiogram.filters import Command
 
 from src.config import Config
+from src.database import Database
 from src.handlers import commands, messages
 from src.llm_client import LLMClient
 from src.storage import Storage
@@ -35,8 +36,9 @@ class Bot:
         self.config = config
         self.bot = AiogramBot(token=config.telegram_token)
         self.dp = Dispatcher()
+        self.database = Database(config)
         self.llm_client = LLMClient(config)
-        self.storage = Storage(config)
+        self.storage = Storage(self.database, config)
         self._register_handlers()
         logger.info("Bot initialized")
 
@@ -100,5 +102,6 @@ class Bot:
     async def stop(self) -> None:
         """Остановка бота и очистка ресурсов."""
         logger.info("Stopping bot...")
+        await self.database.close()
         await self.bot.session.close()
         logger.info("Bot stopped")

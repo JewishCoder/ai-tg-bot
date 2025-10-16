@@ -1,180 +1,239 @@
-"""Хранилище истории диалогов в JSON файлах."""
+"""Хранилище истории диалогов в PostgreSQL."""
 
-import json
 import logging
 from datetime import UTC, datetime
-from pathlib import Path
 from typing import Any
+from uuid import uuid4
 
-import aiofiles
+from sqlalchemy import delete, select, update
+from sqlalchemy.dialects.postgresql import insert
 
 from src.config import Config
+from src.database import Database
+from src.models import Message, User, UserSettings
 
 logger = logging.getLogger(__name__)
 
 
 class Storage:
     """
-    Хранилище истории диалогов в JSON файлах.
+    Хранилище истории диалогов в PostgreSQL.
 
     Отвечает за:
-    - Загрузку истории диалога из файла
-    - Сохранение истории диалога в файл
-    - Управление лимитом сообщений
-    - Работу с файловой системой
+    - Загрузку истории диалога из БД
+    - Сохранение истории диалога в БД
+    - Управление лимитом сообщений (soft delete)
+    - Работу с настройками пользователей
     """
 
-    def __init__(self, config: Config) -> None:
+    def __init__(self, database: Database, config: Config) -> None:
         """
-        Инициализация Storage с конфигурацией.
+        Инициализация Storage с Database и конфигурацией.
 
         Args:
+            database: Объект Database для работы с БД
             config: Конфигурация приложения
         """
+        self.db = database
         self.config = config
-        self.data_dir = Path(config.data_dir)
 
-        # Создаём директорию для данных, если её нет
-        self.data_dir.mkdir(exist_ok=True)
+        logger.info("Storage initialized with PostgreSQL backend")
 
-        logger.info(f"Storage initialized: data_dir={self.data_dir.absolute()}")
-
-    def _get_user_file_path(self, user_id: int) -> Path:
+    async def _ensure_user_exists(self, user_id: int) -> None:
         """
-        Получает путь к файлу истории диалога пользователя.
+        Создаёт пользователя и его настройки, если они не существуют.
+
+        Args:
+            user_id: ID пользователя Telegram
+        """
+        async with self.db.session() as session:
+            # Используем INSERT ... ON CONFLICT DO NOTHING для user
+            stmt = insert(User).values(id=user_id).on_conflict_do_nothing(index_elements=["id"])
+            await session.execute(stmt)
+
+            # Создаём настройки пользователя с дефолтными значениями
+            settings_stmt = (
+                insert(UserSettings)
+                .values(
+                    user_id=user_id,
+                    max_history_messages=self.config.max_history_messages,
+                )
+                .on_conflict_do_nothing(index_elements=["user_id"])
+            )
+            await session.execute(settings_stmt)
+
+        logger.debug(f"User {user_id}: ensured user and settings exist")
+
+    async def _get_user_settings(self, user_id: int) -> UserSettings:
+        """
+        Получает настройки пользователя из БД.
 
         Args:
             user_id: ID пользователя Telegram
 
         Returns:
-            Путь к JSON файлу пользователя
+            Объект UserSettings
         """
-        return self.data_dir / f"{user_id}.json"
+        await self._ensure_user_exists(user_id)
+
+        async with self.db.session() as session:
+            stmt = select(UserSettings).where(UserSettings.user_id == user_id)
+            result = await session.execute(stmt)
+            return result.scalar_one()
 
     async def load_history(self, user_id: int) -> list[dict[str, str]]:
         """
-        Загружает историю диалога пользователя из JSON файла.
+        Загружает историю диалога пользователя из БД.
+
+        Возвращает только не удалённые сообщения (soft delete).
 
         Args:
             user_id: ID пользователя Telegram
 
         Returns:
             Список сообщений в формате [{"role": "...", "content": "...", "timestamp": "..."}, ...]
-            Пустой список, если файла нет или произошла ошибка
+            Пустой список, если истории нет
         """
-        file_path = self._get_user_file_path(user_id)
-
-        # Если файла нет - возвращаем пустую историю
-        if not file_path.exists():
-            logger.debug(f"User {user_id}: no history file found")
-            return []
+        await self._ensure_user_exists(user_id)
 
         try:
-            # Читаем файл асинхронно через aiofiles
-            async with aiofiles.open(file_path, encoding="utf-8") as f:
-                content = await f.read()
-                data = json.loads(content)
+            async with self.db.session() as session:
+                # Загружаем только не удалённые сообщения, отсортированные по времени создания
+                stmt = (
+                    select(Message)
+                    .where(Message.user_id == user_id, Message.deleted_at.is_(None))
+                    .order_by(Message.created_at)
+                )
+                result = await session.execute(stmt)
+                messages = result.scalars().all()
 
-            messages: list[dict[str, str]] = data.get("messages", [])
-            logger.info(f"User {user_id}: loaded history with {len(messages)} messages")
-            return messages
+                # Конвертируем в формат словарей
+                history = [
+                    {
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.created_at.isoformat(),
+                    }
+                    for msg in messages
+                ]
 
-        except json.JSONDecodeError as e:
-            logger.error(f"User {user_id}: failed to parse JSON from {file_path}: {e}")
-            return []
+            logger.info(f"User {user_id}: loaded history with {len(history)} messages")
+            return history
+
         except Exception as e:
-            logger.error(
-                f"User {user_id}: failed to load history from {file_path}: {e}", exc_info=True
-            )
+            logger.error(f"User {user_id}: failed to load history: {e}", exc_info=True)
             return []
 
     async def save_history(self, user_id: int, messages: list[dict[str, str]]) -> None:
         """
-        Сохраняет историю диалога пользователя в JSON файл.
+        Сохраняет историю диалога пользователя в БД.
 
-        Автоматически ограничивает количество сообщений до max_history_messages.
+        Автоматически применяет soft delete к старым сообщениям при превышении лимита.
+        Всегда сохраняет системный промпт (первое сообщение с role="system").
 
         Args:
             user_id: ID пользователя Telegram
             messages: Список сообщений для сохранения
         """
-        file_path = self._get_user_file_path(user_id)
+        await self._ensure_user_exists(user_id)
 
         try:
-            # Ограничиваем историю
-            limited_messages = self._limit_messages(messages)
+            # Получаем лимит для данного пользователя
+            settings = await self._get_user_settings(user_id)
+            max_messages = settings.max_history_messages
 
-            # Формируем данные для сохранения
-            data = {
-                "user_id": user_id,
-                "messages": limited_messages,
-                "updated_at": datetime.now(UTC).isoformat(),
-            }
+            async with self.db.session() as session:
+                # Получаем текущее количество активных сообщений
+                count_stmt = select(Message).where(
+                    Message.user_id == user_id, Message.deleted_at.is_(None)
+                )
+                result = await session.execute(count_stmt)
+                current_messages = result.scalars().all()
+                current_count = len(current_messages)
 
-            # Сохраняем асинхронно через aiofiles
-            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
-                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
+                # Вычисляем сколько новых сообщений добавим
+                new_messages_count = len(messages) - current_count
 
-            logger.info(
-                f"User {user_id}: saved history with {len(limited_messages)} messages to {file_path}"
-            )
+                # Если превышаем лимит, помечаем старые сообщения как удалённые (кроме system)
+                if current_count + new_messages_count > max_messages:
+                    # Сколько сообщений нужно удалить
+                    to_delete_count = (current_count + new_messages_count) - max_messages
+
+                    # Получаем самые старые сообщения (исключая system промпт)
+                    old_messages_stmt = (
+                        select(Message)
+                        .where(
+                            Message.user_id == user_id,
+                            Message.deleted_at.is_(None),
+                            Message.role != "system",
+                        )
+                        .order_by(Message.created_at)
+                        .limit(to_delete_count)
+                    )
+                    old_messages_result = await session.execute(old_messages_stmt)
+                    old_messages = old_messages_result.scalars().all()
+
+                    # Soft delete
+                    if old_messages:
+                        old_message_ids = [msg.id for msg in old_messages]
+                        soft_delete_stmt = (
+                            update(Message)
+                            .where(Message.id.in_(old_message_ids))
+                            .values(deleted_at=datetime.now(UTC))
+                        )
+                        await session.execute(soft_delete_stmt)
+                        logger.debug(
+                            f"User {user_id}: soft deleted {len(old_messages)} old messages"
+                        )
+
+                # Удаляем все текущие сообщения из БД перед вставкой новых
+                # (это полное перезаписывание истории при каждом save)
+                delete_stmt = delete(Message).where(Message.user_id == user_id)
+                await session.execute(delete_stmt)
+
+                # Вставляем все сообщения
+                for msg in messages:
+                    message = Message(
+                        id=uuid4(),
+                        user_id=user_id,
+                        role=msg["role"],
+                        content=msg["content"],
+                        content_length=len(msg["content"]),
+                        created_at=datetime.fromisoformat(
+                            msg.get("timestamp", datetime.now(UTC).isoformat())
+                        ),
+                    )
+                    session.add(message)
+
+            logger.info(f"User {user_id}: saved history with {len(messages)} messages")
 
         except Exception as e:
-            logger.error(
-                f"User {user_id}: failed to save history to {file_path}: {e}", exc_info=True
-            )
+            logger.error(f"User {user_id}: failed to save history: {e}", exc_info=True)
             raise
-
-    def _limit_messages(self, messages: list[dict[str, str]]) -> list[dict[str, str]]:
-        """
-        Ограничивает количество сообщений в истории.
-
-        Всегда сохраняет первое сообщение (системный промпт) и последние N-1 сообщений.
-
-        Args:
-            messages: Список сообщений
-
-        Returns:
-            Ограниченный список сообщений
-        """
-        max_messages = self.config.max_history_messages
-
-        # Если сообщений меньше лимита - возвращаем как есть
-        if len(messages) <= max_messages:
-            return messages
-
-        # Если первое сообщение - системный промпт, сохраняем его
-        if messages and messages[0].get("role") == "system":
-            system_prompt = [messages[0]]
-            recent_messages = messages[-(max_messages - 1) :]
-            result = system_prompt + recent_messages
-            logger.debug(
-                f"Limited history: kept system prompt + {len(recent_messages)} recent messages"
-            )
-            return result
-        # Если нет системного промпта - просто берём последние N сообщений
-        result = messages[-max_messages:]
-        logger.debug(f"Limited history: kept {len(result)} recent messages")
-        return result
 
     async def clear_history(self, user_id: int) -> None:
         """
-        Очищает историю диалога пользователя.
+        Очищает историю диалога пользователя (soft delete).
 
-        Удаляет JSON файл пользователя из файловой системы.
+        Помечает все сообщения как удалённые, не удаляя их физически.
 
         Args:
             user_id: ID пользователя Telegram
         """
-        file_path = self._get_user_file_path(user_id)
+        await self._ensure_user_exists(user_id)
 
         try:
-            if file_path.exists():
-                # Удаление файла - быстрая операция, синхронное выполнение приемлемо
-                file_path.unlink()
-                logger.info(f"User {user_id}: history cleared (file deleted)")
-            else:
-                logger.debug(f"User {user_id}: no history file to clear")
+            async with self.db.session() as session:
+                # Soft delete всех сообщений пользователя
+                stmt = (
+                    update(Message)
+                    .where(Message.user_id == user_id, Message.deleted_at.is_(None))
+                    .values(deleted_at=datetime.now(UTC))
+                )
+                result = await session.execute(stmt)
+                deleted_count = result.rowcount
+
+            logger.info(f"User {user_id}: history cleared ({deleted_count} messages soft deleted)")
 
         except Exception as e:
             logger.error(f"User {user_id}: failed to clear history: {e}", exc_info=True)
@@ -182,7 +241,7 @@ class Storage:
 
     async def get_system_prompt(self, user_id: int) -> str | None:
         """
-        Загружает системный промпт пользователя из файла.
+        Получает кастомный системный промпт пользователя из настроек.
 
         Args:
             user_id: ID пользователя Telegram
@@ -190,19 +249,10 @@ class Storage:
         Returns:
             Системный промпт пользователя или None, если используется промпт по умолчанию
         """
-        file_path = self._get_user_file_path(user_id)
-
-        if not file_path.exists():
-            logger.debug(f"User {user_id}: no file found, no custom system prompt")
-            return None
-
         try:
-            # Читаем файл асинхронно через aiofiles
-            async with aiofiles.open(file_path, encoding="utf-8") as f:
-                content = await f.read()
-                data = json.loads(content)
+            settings = await self._get_user_settings(user_id)
+            system_prompt = settings.system_prompt
 
-            system_prompt: str | None = data.get("system_prompt")
             if system_prompt:
                 logger.debug(
                     f"User {user_id}: loaded custom system prompt ({len(system_prompt)} chars)"
@@ -220,32 +270,36 @@ class Storage:
         """
         Устанавливает системный промпт для пользователя.
 
-        Очищает историю сообщений и сохраняет только новый системный промпт.
+        Очищает историю сообщений (soft delete) и создаёт новое системное сообщение.
 
         Args:
             user_id: ID пользователя Telegram
             system_prompt: Новый системный промпт
         """
-        file_path = self._get_user_file_path(user_id)
+        await self._ensure_user_exists(user_id)
 
         try:
-            # Создаём новый диалог с системным промптом
-            data = {
-                "user_id": user_id,
-                "system_prompt": system_prompt,
-                "messages": [
-                    {
-                        "role": "system",
-                        "content": system_prompt,
-                        "timestamp": datetime.now(UTC).isoformat(),
-                    }
-                ],
-                "updated_at": datetime.now(UTC).isoformat(),
-            }
+            # Очищаем историю (soft delete)
+            await self.clear_history(user_id)
 
-            # Сохраняем асинхронно через aiofiles
-            async with aiofiles.open(file_path, "w", encoding="utf-8") as f:
-                await f.write(json.dumps(data, ensure_ascii=False, indent=2))
+            async with self.db.session() as session:
+                # Обновляем system_prompt в настройках
+                stmt = (
+                    update(UserSettings)
+                    .where(UserSettings.user_id == user_id)
+                    .values(system_prompt=system_prompt, updated_at=datetime.now(UTC))
+                )
+                await session.execute(stmt)
+
+                # Создаём новое системное сообщение
+                system_message = Message(
+                    id=uuid4(),
+                    user_id=user_id,
+                    role="system",
+                    content=system_prompt,
+                    content_length=len(system_prompt),
+                )
+                session.add(system_message)
 
             logger.info(
                 f"User {user_id}: system prompt set ({len(system_prompt)} chars), history cleared"
@@ -268,26 +322,26 @@ class Storage:
             - system_prompt: текущий системный промпт (или None для default)
             - updated_at: дата последнего обновления (или None)
         """
-        file_path = self._get_user_file_path(user_id)
-
-        if not file_path.exists():
-            logger.debug(f"User {user_id}: no dialog file found")
-            return {"messages_count": 0, "system_prompt": None, "updated_at": None}
+        await self._ensure_user_exists(user_id)
 
         try:
-            # Читаем файл асинхронно через aiofiles
-            async with aiofiles.open(file_path, encoding="utf-8") as f:
-                content = await f.read()
-                data = json.loads(content)
+            async with self.db.session() as session:
+                # Считаем активные сообщения
+                count_stmt = select(Message).where(
+                    Message.user_id == user_id, Message.deleted_at.is_(None)
+                )
+                count_result = await session.execute(count_stmt)
+                messages_count = len(count_result.scalars().all())
 
-            messages = data.get("messages", [])
-            system_prompt = data.get("system_prompt")
-            updated_at = data.get("updated_at")
+                # Получаем настройки пользователя
+                settings_stmt = select(UserSettings).where(UserSettings.user_id == user_id)
+                settings_result = await session.execute(settings_stmt)
+                settings = settings_result.scalar_one()
 
             return {
-                "messages_count": len(messages),
-                "system_prompt": system_prompt,
-                "updated_at": updated_at,
+                "messages_count": messages_count,
+                "system_prompt": settings.system_prompt,
+                "updated_at": settings.updated_at.isoformat() if settings.updated_at else None,
             }
 
         except Exception as e:
