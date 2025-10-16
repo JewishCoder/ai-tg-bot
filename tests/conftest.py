@@ -114,9 +114,9 @@ async def test_db_real(test_config: Config) -> AsyncGenerator[Database, None]:
 
 
 @pytest.fixture
-def mock_openai_response() -> dict[str, Any]:
+def sample_openai_response() -> dict[str, Any]:
     """
-    Создаёт mock-ответ от OpenAI API.
+    Создаёт пример ответа от OpenAI API для тестов.
 
     Returns:
         Словарь с данными ответа API
@@ -138,12 +138,12 @@ def mock_openai_response() -> dict[str, Any]:
 
 
 @pytest.fixture
-def mock_openai_client(mock_openai_response: dict[str, Any]) -> AsyncMock:
+def mock_openai_client(sample_openai_response: dict[str, Any]) -> AsyncMock:
     """
     Создаёт mock AsyncOpenAI клиента.
 
     Args:
-        mock_openai_response: Mock-ответ от API
+        sample_openai_response: Пример ответа от API
 
     Returns:
         AsyncMock объект клиента
@@ -152,13 +152,13 @@ def mock_openai_client(mock_openai_response: dict[str, Any]) -> AsyncMock:
 
     # Создаём структуру ответа
     mock_choice = AsyncMock()
-    mock_choice.message.content = mock_openai_response["choices"][0]["message"]["content"]
+    mock_choice.message.content = sample_openai_response["choices"][0]["message"]["content"]
 
     mock_completion = AsyncMock()
     mock_completion.choices = [mock_choice]
-    mock_completion.usage.prompt_tokens = mock_openai_response["usage"]["prompt_tokens"]
-    mock_completion.usage.completion_tokens = mock_openai_response["usage"]["completion_tokens"]
-    mock_completion.usage.total_tokens = mock_openai_response["usage"]["total_tokens"]
+    mock_completion.usage.prompt_tokens = sample_openai_response["usage"]["prompt_tokens"]
+    mock_completion.usage.completion_tokens = sample_openai_response["usage"]["completion_tokens"]
+    mock_completion.usage.total_tokens = sample_openai_response["usage"]["total_tokens"]
 
     # Настраиваем mock
     mock_client.chat.completions.create.return_value = mock_completion

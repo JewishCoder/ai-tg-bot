@@ -324,6 +324,37 @@ make test-fast
 - Внешние API (используем моки)
 - Telegram Bot API (используем моки)
 
+### Naming Conventions для фикстур
+
+**Префиксы фикстур:**
+
+- `mock_*` - Mock-объекты для имитации зависимостей (Database, OpenAI Client, Storage)
+- `test_*` - Реальные тестовые объекты (Config, Database для интеграционных тестов)
+- `sample_*` - Тестовые данные и примеры (messages, API responses)
+
+**Примеры:**
+```python
+# Mock-объекты
+@pytest.fixture
+def mock_database() -> AsyncMock:
+    """Mock Database для unit-тестов."""
+    return AsyncMock(spec=Database)
+
+# Реальные объекты
+@pytest.fixture
+def test_config() -> Config:
+    """Реальная тестовая конфигурация."""
+    return Config(...)
+
+# Тестовые данные
+@pytest.fixture
+def sample_messages() -> list[dict[str, str]]:
+    """Примеры сообщений для тестов."""
+    return [{"role": "user", "content": "Hello"}]
+```
+
+См. подробности в [CONTRIBUTING.md](../../CONTRIBUTING.md#naming-conventions-для-фикстур).
+
 ## Best Practices Python
 
 ### 1. Async/Await правильно

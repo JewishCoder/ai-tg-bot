@@ -246,6 +246,85 @@ async def test_save_history(storage, temp_data_dir):
     assert loaded[0]["content"] == "Hello"
 ```
 
+### Naming Conventions для фикстур
+
+Проект следует единым соглашениям по именованию pytest фикстур:
+
+#### Префиксы фикстур
+
+| Префикс | Назначение | Примеры |
+|---------|------------|---------|
+| `mock_*` | Mock-объекты для имитации зависимостей | `mock_database`, `mock_openai_client`, `mock_storage` |
+| `test_*` | Реальные тестовые объекты | `test_config`, `test_db_real` |
+| `sample_*` | Тестовые данные и примеры | `sample_messages`, `sample_openai_response` |
+
+#### Примеры фикстур
+
+```python
+# Mock-объекты (mock_*)
+@pytest.fixture
+def mock_database() -> AsyncMock:
+    """Mock Database для unit-тестов."""
+    return AsyncMock(spec=Database)
+
+@pytest.fixture
+def mock_storage() -> AsyncMock:
+    """Mock Storage для тестов handlers."""
+    storage = AsyncMock()
+    storage.load_history = AsyncMock(return_value=[])
+    return storage
+
+# Реальные объекты (test_*)
+@pytest.fixture
+def test_config() -> Config:
+    """Реальная тестовая конфигурация."""
+    return Config(
+        telegram_token="test-token",
+        openrouter_api_key="test-key",
+    )
+
+@pytest.fixture
+async def test_db_real() -> AsyncGenerator[Database, None]:
+    """Реальная SQLite БД для интеграционных тестов."""
+    # Создание in-memory database
+    yield database
+    # Cleanup
+
+# Тестовые данные (sample_*)
+@pytest.fixture
+def sample_messages() -> list[dict[str, str]]:
+    """Примеры сообщений для тестов."""
+    return [
+        {"role": "user", "content": "Hello"},
+        {"role": "assistant", "content": "Hi!"},
+    ]
+
+@pytest.fixture
+def sample_openai_response() -> dict[str, Any]:
+    """Пример ответа от OpenAI API."""
+    return {
+        "choices": [{"message": {"content": "Response"}}],
+        "usage": {"total_tokens": 50},
+    }
+```
+
+#### Правила использования
+
+1. **Mock-объекты (`mock_*`):**
+   - Используй для имитации классов, модулей и внешних зависимостей
+   - Настраивай return_value и side_effect для тестирования разных сценариев
+   - Пример: `mock_llm_client`, `mock_message`
+
+2. **Реальные объекты (`test_*`):**
+   - Используй когда нужен настоящий экземпляр класса для тестов
+   - Подходит для интеграционных тестов
+   - Пример: `test_config`, `test_db_real`
+
+3. **Тестовые данные (`sample_*`):**
+   - Используй для словарей, списков и примеров данных
+   - Не для классов или объектов
+   - Пример: `sample_messages`, `sample_user_data`
+
 ### Запуск тестов
 
 ```bash
