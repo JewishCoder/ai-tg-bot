@@ -8,6 +8,20 @@
 ## [Unreleased]
 
 ### Added
+- ⚡ **Спринт S2: Технический долг и оптимизации** (117 тестов, 89% coverage)
+  - Rate limiting middleware для защиты от spam/DDoS (настраиваемые лимиты)
+  - Graceful shutdown с корректным завершением активных задач
+  - Кеширование системных промптов (TTLCache, 5 мин, 1000 entries)
+  - Error recovery с exponential backoff для `save_history()`
+  - Оптимизация загрузки истории (`load_recent_history(limit=20)`)
+  - Составные индексы БД (`ix_messages_user_deleted_created`) для ускорения запросов
+  - Security hardening: sanitization логов, защита от ValueError при парсинге timestamp
+  - `log_message_content=False` по умолчанию для production безопасности
+  - API документация для всех компонентов (6 MD файлов с Mermaid диаграммами)
+  - 7 интеграционных тестов Storage с SQLite in-memory
+  - 18 интеграционных тестов handlers
+  - 13 новых edge case тестов (unicode, emoji, 15k chars, concurrency)
+  - Naming conventions для фикстур (`mock_*`, `test_*`, `sample_*`)
 - 🗄️ **Спринт S1: Миграция на PostgreSQL** (взамен JSON файлов)
   - PostgreSQL 16 для хранения истории диалогов и настроек пользователей
   - SQLAlchemy 2.0 async ORM для работы с БД
@@ -92,14 +106,19 @@
 ### Tests
 - ✅ **PostgreSQL тесты:**
   - `tests/test_storage.py` полностью переписан для работы с БД через моки
-  - `tests/test_handlers_integration.py` обновлен для работы с реальной БД (SQLite in-memory)
-  - Тестовые фикстуры: `mock_database` (для unit-тестов), `test_db_real` (для интеграционных тестов)
+  - `tests/integration/test_storage_integration.py` - 7 тестов с реальной БД (SQLite in-memory)
+  - `tests/integration/test_handlers_integration.py` - 18 тестов handlers
+  - Тестовые фикстуры: `mock_database` (unit-тесты), `integration_db` (интеграционные)
   - Проверка soft delete, управляемых лимитов, content_length
 - ✅ **Fallback тесты:**
   - 4 новых unit-теста для Config (fallback model)
   - 7 новых unit-тестов для LLMClient (fallback логика)
   - 5 новых интеграционных тестов (end-to-end fallback флоу)
-- ✅ Всего 65+ тестов (coverage 85%)
+- ✅ **Sprint S2 тесты:**
+  - 9 тестов sanitization (content, tokens, unicode)
+  - 13 edge case тестов (unicode, emoji, long content, concurrency)
+  - 2 теста ValueError handling для timestamps
+- ✅ **Итого: 117 тестов (coverage 89%)**
 
 ## [0.1.0] - 2025-10-11
 

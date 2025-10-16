@@ -141,10 +141,10 @@ print(config.telegram_token)  # Из TELEGRAM_TOKEN env variable
 
 ## Тестирование
 
-- **93 теста** (100% passing)
+- **117 тестов** (100% passing)
   - 25 интеграционных тестов
-  - 68 unit тестов
-- Coverage >= 80%
+  - 92 unit тестов
+- Coverage: **89%**
 - Pytest + pytest-asyncio
 - Запуск: `pytest tests/`
 
