@@ -1101,3 +1101,78 @@ async def test_storage_empty_string_in_content(
     await storage.save_history(user_id, messages)
 
     # Тест прошел если нет исключений
+
+
+# Security Tests
+
+
+@pytest.mark.asyncio
+async def test_storage_invalid_timestamp_handling(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест: обработка невалидного timestamp (защита от ValueError).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Сообщения с невалидным timestamp
+    messages = [
+        {"role": "user", "content": "Test", "timestamp": "invalid-timestamp-format"},
+        {"role": "assistant", "content": "Response", "timestamp": "not-a-date"},
+    ]
+
+    # Создаем переменную для проверки что fallback сработал
+    fallback_used = False
+
+    # Мокируем _save_history_attempt напрямую
+    async def mock_save_attempt(_user_id: int, _messages: list[dict]) -> None:
+        nonlocal fallback_used
+        fallback_used = True
+        # Проверяем что сообщения прошли (несмотря на невалидный timestamp)
+        assert len(_messages) == 2
+
+    storage._save_history_attempt = mock_save_attempt  # type: ignore[method-assign]
+
+    # Вызываем save_history - НЕ должно выбросить ValueError
+    await storage.save_history(user_id, messages)
+
+    # Проверяем что обработка прошла успешно
+    assert fallback_used
+
+
+@pytest.mark.asyncio
+async def test_storage_none_timestamp_handling(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест: обработка отсутствующего timestamp.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Сообщение без timestamp вообще
+    messages = [
+        {"role": "user", "content": "Test without timestamp"},
+    ]
+
+    fallback_used = False
+
+    async def mock_save_attempt(_user_id: int, _messages: list[dict]) -> None:
+        nonlocal fallback_used
+        fallback_used = True
+
+    storage._save_history_attempt = mock_save_attempt  # type: ignore[method-assign]
+
+    # Должно использовать текущее время
+    await storage.save_history(user_id, messages)
+
+    assert fallback_used

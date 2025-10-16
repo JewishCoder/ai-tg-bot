@@ -11,8 +11,7 @@ from aiogram.types import Message
 from src.config import Config
 from src.llm_client import LLMAPIError, LLMClient
 from src.storage import Storage
-from src.utils.error_formatter import get_error_message
-from src.utils.message_splitter import split_message
+from src.utils import get_error_message, sanitize_content, split_message
 
 logger = logging.getLogger(__name__)
 
@@ -40,8 +39,8 @@ async def handle_message(
         return
 
     user_id = message.from_user.id if message.from_user else 0
-    text_length = len(message.text)
-    logger.info(f"User {user_id}: received message ({text_length} chars)")
+    sanitized_text = sanitize_content(message.text, show_content=config.log_message_content)
+    logger.info(f"User {user_id}: received message - {sanitized_text}")
 
     try:
         # Показываем индикатор "печатает..."

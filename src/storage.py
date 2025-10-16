@@ -297,15 +297,24 @@ class Storage:
                         updated_messages_count += 1
                     else:
                         # СОЗДАЁМ новое сообщение
+                        # Парсим timestamp с обработкой ValueError
+                        timestamp_str = msg.get("timestamp", datetime.now(UTC).isoformat())
+                        try:
+                            created_at = datetime.fromisoformat(timestamp_str)
+                        except (ValueError, TypeError) as e:
+                            logger.warning(
+                                f"User {user_id}: invalid timestamp '{timestamp_str}', "
+                                f"using current time. Error: {e}"
+                            )
+                            created_at = datetime.now(UTC)
+
                         new_message = Message(
                             id=uuid4(),
                             user_id=user_id,
                             role=msg["role"],
                             content=msg["content"],
                             content_length=len(msg["content"]),
-                            created_at=datetime.fromisoformat(
-                                msg.get("timestamp", datetime.now(UTC).isoformat())
-                            ),
+                            created_at=created_at,
                         )
                         session.add(new_message)
                         new_messages_count += 1

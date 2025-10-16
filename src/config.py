@@ -92,6 +92,12 @@ class Config(BaseSettings):
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")
 
+    # Logging Security
+    log_message_content: bool = Field(
+        default=False,
+        description="Log message content in production (False = sanitize, True = log full content)",
+    )
+
     # Database
     db_host: str = Field(default="localhost", description="Database host")
     db_port: int = Field(default=5432, description="Database port")
