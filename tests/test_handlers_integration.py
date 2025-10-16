@@ -149,7 +149,7 @@ async def test_handle_message_full_cycle(
     """Тест: полный цикл обработки сообщения."""
     # Setup
     mock_message.text = "Привет, как дела?"
-    mock_storage.load_history.return_value = []
+    mock_storage.load_recent_history.return_value = []
     mock_storage.get_system_prompt.return_value = None
     mock_llm_client.generate_response.return_value = "Отлично, спасибо!"
 
@@ -157,7 +157,7 @@ async def test_handle_message_full_cycle(
     await handle_message(mock_message, mock_bot, mock_llm_client, mock_storage, test_config)
 
     # Assert
-    mock_storage.load_history.assert_called_once_with(12345)
+    mock_storage.load_recent_history.assert_called_once()
     mock_llm_client.generate_response.assert_called_once()
     mock_storage.save_history.assert_called_once()
     mock_message.answer.assert_called_once_with("Отлично, спасибо!")
@@ -183,7 +183,7 @@ async def test_handle_message_with_existing_history(
             "timestamp": "2024-01-01T00:00:02+00:00",
         },
     ]
-    mock_storage.load_history.return_value = existing_history
+    mock_storage.load_recent_history.return_value = existing_history
     mock_llm_client.generate_response.return_value = "Да, продолжаем!"
 
     # Execute
@@ -191,7 +191,7 @@ async def test_handle_message_with_existing_history(
 
     # Assert
     # История должна была загрузиться
-    mock_storage.load_history.assert_called_once_with(12345)
+    mock_storage.load_recent_history.assert_called_once()
 
     # LLM должен был быть вызван
     mock_llm_client.generate_response.assert_called_once()
@@ -219,7 +219,7 @@ async def test_handle_message_llm_error(
     """Тест: обработка ошибки LLM API."""
     # Setup
     mock_message.text = "Тестовое сообщение"
-    mock_storage.load_history.return_value = []
+    mock_storage.load_recent_history.return_value = []
     mock_storage.get_system_prompt.return_value = None
     mock_llm_client.generate_response.side_effect = LLMAPIError("Rate limit exceeded")
 
@@ -245,7 +245,7 @@ async def test_handle_message_long_response(
     """Тест: обработка длинного ответа (разбивка на части)."""
     # Setup
     mock_message.text = "Расскажи много"
-    mock_storage.load_history.return_value = []
+    mock_storage.load_recent_history.return_value = []
     mock_storage.get_system_prompt.return_value = None
     # Создаём длинный ответ > 4096 символов
     long_response = "a" * 5000
@@ -274,7 +274,7 @@ async def test_handle_message_custom_system_prompt(
     """Тест: использование кастомного системного промпта."""
     # Setup
     mock_message.text = "Тест"
-    mock_storage.load_history.return_value = []
+    mock_storage.load_recent_history.return_value = []
     custom_prompt = "Ты эксперт по Python"
     mock_storage.get_system_prompt.return_value = custom_prompt
     mock_llm_client.generate_response.return_value = "Ответ"
@@ -302,7 +302,7 @@ async def test_handle_message_chat_action(
     """Тест: бот отправляет chat action (typing) при обработке."""
     # Setup
     mock_message.text = "Тест"
-    mock_storage.load_history.return_value = []
+    mock_storage.load_recent_history.return_value = []
     mock_storage.get_system_prompt.return_value = None
     mock_llm_client.generate_response.return_value = "Ответ"
 

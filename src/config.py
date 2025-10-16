@@ -71,6 +71,13 @@ class Config(BaseSettings):
         default=1000, ge=1, description="Maximum cache size (number of entries)"
     )
 
+    # Context Management
+    max_context_messages: int = Field(
+        default=20,
+        ge=1,
+        description="Maximum number of messages to load for LLM context (default 20)",
+    )
+
     # Directories
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")

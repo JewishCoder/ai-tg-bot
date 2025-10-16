@@ -604,6 +604,166 @@ async def test_prompt_cache_ttl_expiration() -> None:
 
 
 @pytest.mark.asyncio
+async def test_load_recent_history_with_limit(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест загрузки последних N сообщений с лимитом.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    limit = 5
+
+    # Mock для _ensure_user_exists
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    # Mock для основного запроса
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from src.models import Message
+
+    # Создаем 10 сообщений, но загружаем только последние 5
+    mock_messages = [
+        Message(
+            id=uuid4(),
+            user_id=user_id,
+            role="user" if i % 2 == 0 else "assistant",
+            content=f"Message {i}",
+            content_length=len(f"Message {i}"),
+            created_at=datetime.now(UTC),
+            deleted_at=None,
+        )
+        for i in range(10)
+    ]
+
+    # LIMIT 5 вернет последние 5 (индексы 5-9), в DESC order
+    last_5_reversed = list(reversed(mock_messages[5:10]))
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = last_5_reversed
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    mock_database.session.side_effect = [mock_ensure_session, mock_session]
+
+    # Вызываем метод
+    history = await storage.load_recent_history(user_id, limit=limit)
+
+    # Проверяем результат
+    assert len(history) == 5
+    assert history[0]["content"] == "Message 5"  # Первое из последних 5
+    assert history[-1]["content"] == "Message 9"  # Последнее
+
+
+@pytest.mark.asyncio
+async def test_load_recent_history_without_limit(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест загрузки всех сообщений (без лимита).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Mock для _ensure_user_exists
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    # Mock для основного запроса
+    from datetime import UTC, datetime
+    from uuid import uuid4
+
+    from src.models import Message
+
+    mock_messages = [
+        Message(
+            id=uuid4(),
+            user_id=user_id,
+            role="user" if i % 2 == 0 else "assistant",
+            content=f"Message {i}",
+            content_length=len(f"Message {i}"),
+            created_at=datetime.now(UTC),
+            deleted_at=None,
+        )
+        for i in range(3)
+    ]
+
+    # Без LIMIT - все сообщения в DESC order
+    all_reversed = list(reversed(mock_messages))
+
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = all_reversed
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    mock_database.session.side_effect = [mock_ensure_session, mock_session]
+
+    # Вызываем метод без лимита
+    history = await storage.load_recent_history(user_id, limit=None)
+
+    # Проверяем результат
+    assert len(history) == 3
+    assert history[0]["content"] == "Message 0"
+    assert history[-1]["content"] == "Message 2"
+
+
+@pytest.mark.asyncio
+async def test_load_recent_history_empty(mock_database: AsyncMock, test_config: Config) -> None:
+    """
+    Тест загрузки пустой истории.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Mock для _ensure_user_exists
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    # Mock для основного запроса (пустой результат)
+    mock_result = MagicMock()
+    mock_result.scalars.return_value.all.return_value = []
+
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=mock_result)
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    mock_database.session.side_effect = [mock_ensure_session, mock_session]
+
+    # Вызываем метод
+    history = await storage.load_recent_history(user_id, limit=10)
+
+    # Проверяем результат
+    assert history == []
+
+
+@pytest.mark.asyncio
 async def test_prompt_cache_max_size() -> None:
     """
     Тест ограничения размера кеша.

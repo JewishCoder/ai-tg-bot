@@ -134,6 +134,62 @@ class Storage:
             logger.error(f"User {user_id}: failed to load history: {e}", exc_info=True)
             return []
 
+    async def load_recent_history(
+        self, user_id: int, limit: int | None = None
+    ) -> list[dict[str, str]]:
+        """
+        Загружает последние N сообщений пользователя из БД (оптимизированная версия).
+
+        Использует LIMIT для загрузки только необходимого количества сообщений,
+        что значительно эффективнее для пользователей с большой историей.
+
+        Args:
+            user_id: ID пользователя Telegram
+            limit: Максимальное количество сообщений для загрузки (None = все сообщения)
+
+        Returns:
+            Список последних сообщений в хронологическом порядке
+            Пустой список, если истории нет
+        """
+        await self._ensure_user_exists(user_id)
+
+        try:
+            async with self.db.session() as session:
+                # Загружаем последние N сообщений (DESC order для эффективного LIMIT)
+                stmt = (
+                    select(Message)
+                    .where(Message.user_id == user_id, Message.deleted_at.is_(None))
+                    .order_by(Message.created_at.desc())
+                )
+
+                if limit is not None:
+                    stmt = stmt.limit(limit)
+
+                result = await session.execute(stmt)
+                messages = result.scalars().all()
+
+                # Реверсируем для хронологического порядка (от старых к новым)
+                history = [
+                    {
+                        "id": str(msg.id),
+                        "role": msg.role,
+                        "content": msg.content,
+                        "timestamp": msg.created_at.isoformat(),
+                    }
+                    for msg in reversed(messages)
+                ]
+
+            limit_str = f"last {limit}" if limit else "all"
+            logger.info(f"User {user_id}: loaded {limit_str} messages ({len(history)} total)")
+            return history
+
+        except Exception as e:
+            logger.error(
+                f"User {user_id}: failed to load recent history (limit={limit}): {e}",
+                exc_info=True,
+            )
+            return []
+
     async def save_history(self, user_id: int, messages: list[dict[str, str]]) -> None:
         """
         Сохраняет историю диалога пользователя в БД (инкрементально).

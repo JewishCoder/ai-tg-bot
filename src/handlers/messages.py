@@ -47,8 +47,8 @@ async def handle_message(
         # Показываем индикатор "печатает..."
         await bot.send_chat_action(chat_id=message.chat.id, action=ChatAction.TYPING)
 
-        # 1. Загружаем историю диалога
-        history = await storage.load_history(user_id)
+        # 1. Загружаем последние N сообщений (для оптимизации контекста LLM)
+        history = await storage.load_recent_history(user_id, limit=config.max_context_messages)
 
         # 2. Если истории нет - инициализируем новый диалог с системным промптом
         if not history:
