@@ -764,6 +764,161 @@ async def test_load_recent_history_empty(mock_database: AsyncMock, test_config: 
 
 
 @pytest.mark.asyncio
+async def test_save_history_retry_on_failure(mock_database: AsyncMock, test_config: Config) -> None:
+    """
+    Тест retry механизма при ошибке сохранения истории.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    # Настроим конфиг с 3 попытками retry
+    test_config.save_retry_attempts = 3
+    test_config.save_retry_delay = 0.1  # Быстрый retry для теста
+
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    messages = [{"role": "user", "content": "Test", "timestamp": datetime.now(UTC).isoformat()}]
+
+    # Mock для _ensure_user_exists
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    # Первые 2 попытки fail, 3-я succeed
+    error = Exception("Database connection error")
+
+    # Mock для неудачных попыток (1 и 2)
+    failed_session_1 = AsyncMock()
+    failed_session_1.__aenter__.side_effect = error
+
+    failed_session_2 = AsyncMock()
+    failed_session_2.__aenter__.side_effect = error
+
+    # Mock для успешной попытки (3)
+    success_session = AsyncMock()
+    success_session.__aenter__.return_value = success_session
+    success_session.__aexit__.return_value = AsyncMock()
+
+    mock_settings = MagicMock()
+    mock_settings.max_history_messages = 50
+    mock_settings_result = AsyncMock()
+    mock_settings_result.scalar_one.return_value = mock_settings
+
+    mock_ids_result = AsyncMock()
+    mock_ids_result.all.return_value = []
+
+    success_session.execute = AsyncMock(side_effect=[mock_settings_result, mock_ids_result])
+    success_session.add = MagicMock()
+
+    # Настраиваем side_effect для session(): 1 ensure + 3 save attempts
+    mock_database.session.side_effect = [
+        mock_ensure_session,  # _ensure_user_exists для 1 попытки
+        failed_session_1,  # 1 попытка save - fail
+        mock_ensure_session,  # _ensure_user_exists для 2 попытки
+        failed_session_2,  # 2 попытка save - fail
+        mock_ensure_session,  # _ensure_user_exists для 3 попытки
+        success_session,  # 3 попытка save - success
+    ]
+
+    # Вызываем save_history - должен успешно сохранить после 3 попыток
+    await storage.save_history(user_id, messages)
+
+    # Проверяем что были 3 попытки
+    assert mock_database.session.call_count == 6  # 3 ensure + 3 save attempts
+
+
+@pytest.mark.asyncio
+async def test_save_history_all_retries_fail(mock_database: AsyncMock, test_config: Config) -> None:
+    """
+    Тест когда все retry попытки проваливаются.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    test_config.save_retry_attempts = 2
+    test_config.save_retry_delay = 0.05
+
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    messages = [{"role": "user", "content": "Test", "timestamp": datetime.now(UTC).isoformat()}]
+
+    error = Exception("Persistent database error")
+
+    # Все попытки будут fail
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    failed_session = AsyncMock()
+    failed_session.__aenter__.side_effect = error
+
+    # Все попытки провалятся
+    mock_database.session.side_effect = [
+        mock_ensure_session,
+        failed_session,  # 1 попытка
+        mock_ensure_session,
+        failed_session,  # 2 попытка
+    ]
+
+    # Должен выбросить исключение после всех попыток
+    with pytest.raises(Exception) as exc_info:
+        await storage.save_history(user_id, messages)
+
+    assert "Persistent database error" in str(exc_info.value)
+    assert mock_database.session.call_count == 4  # 2 ensure + 2 save attempts
+
+
+@pytest.mark.asyncio
+async def test_save_history_success_on_first_attempt(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест что retry не срабатывает при успешной первой попытке.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    messages = [{"role": "user", "content": "Test", "timestamp": datetime.now(UTC).isoformat()}]
+
+    # Mock для _ensure_user_exists
+    mock_ensure_session = AsyncMock()
+    mock_ensure_session.__aenter__.return_value = mock_ensure_session
+    mock_ensure_session.__aexit__.return_value = AsyncMock()
+    mock_ensure_session.execute = AsyncMock(return_value=AsyncMock())
+
+    # Mock для успешного save
+    mock_save_session = AsyncMock()
+    mock_save_session.__aenter__.return_value = mock_save_session
+    mock_save_session.__aexit__.return_value = AsyncMock()
+
+    mock_settings = MagicMock()
+    mock_settings.max_history_messages = 50
+    mock_settings_result = AsyncMock()
+    mock_settings_result.scalar_one.return_value = mock_settings
+
+    mock_ids_result = AsyncMock()
+    mock_ids_result.all.return_value = []
+
+    mock_save_session.execute = AsyncMock(side_effect=[mock_settings_result, mock_ids_result])
+    mock_save_session.add = MagicMock()
+
+    mock_database.session.side_effect = [mock_ensure_session, mock_save_session]
+
+    # Вызываем save_history
+    await storage.save_history(user_id, messages)
+
+    # Должна быть только 1 попытка (1 ensure + 1 save)
+    assert mock_database.session.call_count == 2
+
+
+@pytest.mark.asyncio
 async def test_prompt_cache_max_size() -> None:
     """
     Тест ограничения размера кеша.

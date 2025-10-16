@@ -1,5 +1,6 @@
 """Хранилище истории диалогов в PostgreSQL."""
 
+import asyncio
 import logging
 from datetime import UTC, datetime
 from typing import Any
@@ -192,17 +193,72 @@ class Storage:
 
     async def save_history(self, user_id: int, messages: list[dict[str, str]]) -> None:
         """
-        Сохраняет историю диалога пользователя в БД (инкрементально).
+        Сохраняет историю диалога пользователя в БД (инкрементально) с retry механизмом.
 
         Обновляет существующие сообщения и добавляет только новые.
         Автоматически применяет soft delete к старым сообщениям при превышении лимита.
         Всегда сохраняет системный промпт (первое сообщение с role="system").
 
+        Retry механизм:
+        - Делает несколько попыток (save_retry_attempts) при ошибках
+        - Использует экспоненциальную задержку между попытками
+        - Логирует все попытки восстановления
+
         Args:
             user_id: ID пользователя Telegram
             messages: Список сообщений для сохранения (с полем "id" для существующих)
+
+        Raises:
+            Exception: После всех неудачных попыток retry
+        """
+        last_error: Exception | None = None
+
+        for attempt in range(1, self.config.save_retry_attempts + 1):
+            try:
+                await self._save_history_attempt(user_id, messages)
+
+                if attempt > 1:
+                    logger.info(f"User {user_id}: save_history succeeded on attempt {attempt}")
+                return  # Success!
+
+            except Exception as e:
+                last_error = e
+                logger.warning(
+                    f"User {user_id}: save_history attempt {attempt}/"
+                    f"{self.config.save_retry_attempts} failed: {e}",
+                    exc_info=(attempt == self.config.save_retry_attempts),
+                )
+
+                if attempt < self.config.save_retry_attempts:
+                    # Exponential backoff
+                    delay = self.config.save_retry_delay * (2 ** (attempt - 1))
+                    logger.debug(f"User {user_id}: retrying save_history in {delay}s...")
+                    await asyncio.sleep(delay)
+                else:
+                    # Все попытки исчерпаны
+                    logger.error(
+                        f"User {user_id}: save_history failed after "
+                        f"{self.config.save_retry_attempts} attempts"
+                    )
+
+        # Если мы здесь, значит все попытки провалились
+        if last_error:
+            raise last_error
+        raise RuntimeError("save_history failed with unknown error")
+
+    async def _save_history_attempt(self, user_id: int, messages: list[dict[str, str]]) -> None:
+        """
+        Внутренний метод для одной попытки сохранения истории.
+
+        Args:
+            user_id: ID пользователя Telegram
+            messages: Список сообщений для сохранения
         """
         await self._ensure_user_exists(user_id)
+
+        # Инициализируем счетчики для логирования
+        new_messages_count = 0
+        updated_messages_count = 0
 
         try:
             async with self.db.session() as session:

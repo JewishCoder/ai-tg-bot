@@ -78,6 +78,16 @@ class Config(BaseSettings):
         description="Maximum number of messages to load for LLM context (default 20)",
     )
 
+    # Error Recovery
+    save_retry_attempts: int = Field(
+        default=3, ge=1, description="Number of retry attempts for save_history (default 3)"
+    )
+    save_retry_delay: float = Field(
+        default=1.0,
+        ge=0.1,
+        description="Base delay between save retries in seconds (exponential backoff)",
+    )
+
     # Directories
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")
