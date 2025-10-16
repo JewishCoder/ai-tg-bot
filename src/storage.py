@@ -231,7 +231,7 @@ class Storage:
                     .values(deleted_at=datetime.now(UTC))
                 )
                 result = await session.execute(stmt)
-                deleted_count = result.rowcount
+                deleted_count = result.rowcount or 0  # type: ignore[attr-defined]
 
             logger.info(f"User {user_id}: history cleared ({deleted_count} messages soft deleted)")
 
