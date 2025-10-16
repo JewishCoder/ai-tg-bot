@@ -81,5 +81,6 @@ build-backend = "hatchling.build"
 [dependency-groups]
 dev = [
     "aiosqlite>=0.21.0",
+    "types-cachetools>=6.2.0.20250827",
 ]
 

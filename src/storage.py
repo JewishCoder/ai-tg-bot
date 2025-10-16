@@ -393,7 +393,7 @@ class Storage:
         """
         # Проверяем кеш
         if user_id in self.prompt_cache:
-            system_prompt = self.prompt_cache[user_id]
+            system_prompt: str | None = self.prompt_cache[user_id]
             logger.debug(f"User {user_id}: prompt cache HIT")
             return system_prompt
 
