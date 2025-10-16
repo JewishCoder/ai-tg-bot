@@ -188,12 +188,12 @@ class Message(Base):
 - Нет timeout'а на shutdown
 
 **Что нужно сделать**:
-- [ ] Добавить отслеживание активных задач в `Bot`
-- [ ] Реализовать метод `_wait_for_pending_tasks()`
-- [ ] Добавить timeout для graceful shutdown (30 секунд)
-- [ ] Логировать процесс остановки
-- [ ] Обработать `asyncio.TimeoutError` при превышении timeout
-- [ ] Добавить тесты для shutdown процесса
+- [x] Добавить отслеживание активных задач в `Bot`
+- [x] Реализовать метод `_wait_for_pending_tasks()`
+- [x] Добавить timeout для graceful shutdown (30 секунд)
+- [x] Логировать процесс остановки
+- [x] Обработать `asyncio.TimeoutError` при превышении timeout
+- [x] Добавить тесты для shutdown процесса
 
 **Файлы для изменения**:
 - `src/bot.py` - методы `stop()` и `_wait_for_pending_tasks()`

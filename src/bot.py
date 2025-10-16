@@ -1,5 +1,6 @@
 """Основной класс Telegram-бота."""
 
+import asyncio
 import logging
 from functools import partial
 
@@ -40,6 +41,8 @@ class Bot:
         self.database = Database(config)
         self.llm_client = LLMClient(config)
         self.storage = Storage(self.database, config)
+        self._is_shutting_down = False
+        self._active_handlers = 0
         self._register_middlewares()
         self._register_handlers()
         logger.info("Bot initialized")
@@ -112,9 +115,57 @@ class Bot:
             logger.error(f"Error during polling: {e}", exc_info=True)
             raise
 
+    async def _wait_for_pending_handlers(self, timeout: float = 30.0) -> None:
+        """
+        Ожидание завершения активных handlers с timeout.
+
+        Args:
+            timeout: Максимальное время ожидания в секундах
+        """
+        if self._active_handlers == 0:
+            logger.info("No active handlers to wait for")
+            return
+
+        logger.info(f"Waiting for {self._active_handlers} active handlers to complete...")
+
+        start_time = asyncio.get_event_loop().time()
+
+        while self._active_handlers > 0:
+            # Проверяем timeout
+            elapsed = asyncio.get_event_loop().time() - start_time
+            if elapsed >= timeout:
+                logger.warning(
+                    f"Graceful shutdown timeout after {timeout}s. "
+                    f"{self._active_handlers} handlers still active"
+                )
+                break
+
+            # Ждём немного перед следующей проверкой
+            await asyncio.sleep(0.1)
+
+        if self._active_handlers == 0:
+            logger.info("All handlers completed successfully")
+
     async def stop(self) -> None:
-        """Остановка бота и очистка ресурсов."""
-        logger.info("Stopping bot...")
+        """
+        Остановка бота с graceful shutdown.
+
+        Ожидает завершения активных handlers с timeout 30 секунд,
+        затем закрывает ресурсы (БД, HTTP сессии).
+        """
+        logger.info("Initiating graceful shutdown...")
+
+        # Устанавливаем флаг остановки
+        self._is_shutting_down = True
+
+        # Ждём завершения активных handlers
+        await self._wait_for_pending_handlers(timeout=30.0)
+
+        # Закрываем ресурсы
+        logger.info("Closing database connection...")
         await self.database.close()
+
+        logger.info("Closing bot session...")
         await self.bot.session.close()
-        logger.info("Bot stopped")
+
+        logger.info("Bot stopped gracefully")
