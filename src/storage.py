@@ -5,6 +5,7 @@ from datetime import UTC, datetime
 from typing import Any
 from uuid import UUID, uuid4
 
+from cachetools import TTLCache
 from sqlalchemy import select, update
 from sqlalchemy.dialects.postgresql import insert
 
@@ -37,7 +38,15 @@ class Storage:
         self.db = database
         self.config = config
 
-        logger.info("Storage initialized with PostgreSQL backend")
+        # Инициализация кеша для системных промптов
+        self.prompt_cache: TTLCache[int, str | None] = TTLCache(
+            maxsize=config.cache_max_size, ttl=config.cache_ttl
+        )
+
+        logger.info(
+            f"Storage initialized with PostgreSQL backend "
+            f"(cache: TTL={config.cache_ttl}s, size={config.cache_max_size})"
+        )
 
     async def _ensure_user_exists(self, user_id: int) -> None:
         """
@@ -260,7 +269,9 @@ class Storage:
 
     async def get_system_prompt(self, user_id: int) -> str | None:
         """
-        Получает кастомный системный промпт пользователя из настроек.
+        Получает кастомный системный промпт пользователя из настроек (с кешированием).
+
+        Кеш автоматически инвалидируется через TTL или при вызове set_system_prompt().
 
         Args:
             user_id: ID пользователя Telegram
@@ -268,16 +279,27 @@ class Storage:
         Returns:
             Системный промпт пользователя или None, если используется промпт по умолчанию
         """
+        # Проверяем кеш
+        if user_id in self.prompt_cache:
+            system_prompt = self.prompt_cache[user_id]
+            logger.debug(f"User {user_id}: prompt cache HIT")
+            return system_prompt
+
+        # Кеш промах - загружаем из БД
         try:
             settings = await self._get_user_settings(user_id)
             system_prompt = settings.system_prompt
 
+            # Сохраняем в кеш
+            self.prompt_cache[user_id] = system_prompt
+
             if system_prompt:
                 logger.debug(
-                    f"User {user_id}: loaded custom system prompt ({len(system_prompt)} chars)"
+                    f"User {user_id}: prompt cache MISS, loaded from DB "
+                    f"({len(system_prompt)} chars)"
                 )
             else:
-                logger.debug(f"User {user_id}: using default system prompt")
+                logger.debug(f"User {user_id}: prompt cache MISS, using default")
 
             return system_prompt
 
@@ -319,6 +341,11 @@ class Storage:
                     content_length=len(system_prompt),
                 )
                 session.add(system_message)
+
+            # Инвалидация кеша
+            if user_id in self.prompt_cache:
+                del self.prompt_cache[user_id]
+                logger.debug(f"User {user_id}: prompt cache invalidated")
 
             logger.info(
                 f"User {user_id}: system prompt set ({len(system_prompt)} chars), history cleared"

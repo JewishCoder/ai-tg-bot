@@ -63,6 +63,14 @@ class Config(BaseSettings):
         default=60.0, ge=1.0, description="Rate limit period in seconds"
     )
 
+    # Caching
+    cache_ttl: int = Field(
+        default=300, ge=1, description="Cache TTL in seconds (default 5 minutes)"
+    )
+    cache_max_size: int = Field(
+        default=1000, ge=1, description="Maximum cache size (number of entries)"
+    )
+
     # Directories
     data_dir: str = Field(default="data", description="Directory for storing dialog history files")
     logs_dir: str = Field(default="logs", description="Directory for storing log files")

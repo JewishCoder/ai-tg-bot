@@ -1,5 +1,6 @@
 """Тесты для модуля Storage с использованием mock Database."""
 
+import asyncio
 from datetime import UTC, datetime
 from unittest.mock import AsyncMock, MagicMock
 
@@ -397,3 +398,240 @@ async def test_storage_integration_with_mock(mock_database: AsyncMock, test_conf
     assert hasattr(storage, "get_system_prompt")
     assert hasattr(storage, "set_system_prompt")
     assert hasattr(storage, "get_dialog_info")
+    assert hasattr(storage, "prompt_cache")
+
+
+# =============================================================================
+# Тесты для кеширования системных промптов
+# =============================================================================
+
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_cache_miss(
+    mock_database: AsyncMock, test_config: Config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Тест первого обращения к get_system_prompt (cache MISS).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+        monkeypatch: Pytest fixture для патчинга
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    custom_prompt = "Ты - полезный ассистент"
+
+    # Mock для _get_user_settings
+    mock_settings = MagicMock()
+    mock_settings.system_prompt = custom_prompt
+
+    async def mock_get_settings(_user_id_arg: int) -> UserSettings:
+        return mock_settings
+
+    # Патчим метод _get_user_settings
+    monkeypatch.setattr(storage, "_get_user_settings", mock_get_settings)
+
+    # Проверяем что кеш пустой
+    assert user_id not in storage.prompt_cache
+
+    # Первый вызов - должен загрузить из БД
+    result = await storage.get_system_prompt(user_id)
+
+    # Проверяем результат
+    assert result == custom_prompt
+
+    # Проверяем что значение попало в кеш
+    assert user_id in storage.prompt_cache
+    assert storage.prompt_cache[user_id] == custom_prompt
+
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_cache_hit(mock_database: AsyncMock, test_config: Config) -> None:
+    """
+    Тест повторного обращения к get_system_prompt (cache HIT).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    custom_prompt = "Ты - полезный ассистент"
+
+    # Предзаполняем кеш
+    storage.prompt_cache[user_id] = custom_prompt
+
+    # Вызываем get_system_prompt
+    result = await storage.get_system_prompt(user_id)
+
+    # Проверяем результат
+    assert result == custom_prompt
+
+    # Проверяем что к БД НЕ обращались
+    mock_database.session.assert_not_called()
+
+
+@pytest.mark.asyncio
+async def test_get_system_prompt_cache_none_value(
+    mock_database: AsyncMock, test_config: Config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Тест кеширования None (пользователь использует промпт по умолчанию).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+        monkeypatch: Pytest fixture для патчинга
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Mock для _get_user_settings (системный промпт = None)
+    mock_settings = MagicMock()
+    mock_settings.system_prompt = None
+
+    call_count = 0
+
+    async def mock_get_settings(_user_id_arg: int) -> UserSettings:
+        nonlocal call_count
+        call_count += 1
+        return mock_settings
+
+    # Патчим метод _get_user_settings
+    monkeypatch.setattr(storage, "_get_user_settings", mock_get_settings)
+
+    # Первый вызов
+    result = await storage.get_system_prompt(user_id)
+
+    # Проверяем результат
+    assert result is None
+
+    # Проверяем что None закешировался
+    assert user_id in storage.prompt_cache
+    assert storage.prompt_cache[user_id] is None
+
+    # Проверяем что был один вызов _get_user_settings
+    assert call_count == 1
+
+    # Второй вызов - должен взять из кеша
+    result2 = await storage.get_system_prompt(user_id)
+
+    assert result2 is None
+    # Проверяем что _get_user_settings НЕ вызывался второй раз
+    assert call_count == 1
+
+
+@pytest.mark.asyncio
+async def test_set_system_prompt_invalidates_cache(
+    mock_database: AsyncMock, test_config: Config, monkeypatch: pytest.MonkeyPatch
+) -> None:
+    """
+    Тест инвалидации кеша при вызове set_system_prompt.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+        monkeypatch: Pytest fixture для патчинга
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+    old_prompt = "Старый промпт"
+    new_prompt = "Новый промпт"
+
+    # Предзаполняем кеш старым значением
+    storage.prompt_cache[user_id] = old_prompt
+    assert user_id in storage.prompt_cache
+
+    # Mock для _ensure_user_exists
+    async def mock_ensure_user(user_id_arg: int) -> None:
+        pass
+
+    # Mock для clear_history
+    async def mock_clear_history(user_id_arg: int) -> None:
+        pass
+
+    # Патчим методы
+    monkeypatch.setattr(storage, "_ensure_user_exists", mock_ensure_user)
+    monkeypatch.setattr(storage, "clear_history", mock_clear_history)
+
+    # Mock для session (для основной логики set_system_prompt)
+    mock_session = AsyncMock()
+    mock_session.execute = AsyncMock(return_value=AsyncMock())
+    mock_session.add = MagicMock()
+    mock_session.__aenter__.return_value = mock_session
+    mock_session.__aexit__.return_value = AsyncMock()
+
+    mock_database.session.return_value = mock_session
+
+    # Вызываем set_system_prompt
+    await storage.set_system_prompt(user_id, new_prompt)
+
+    # Проверяем что кеш был инвалидирован
+    assert user_id not in storage.prompt_cache
+
+
+@pytest.mark.asyncio
+async def test_prompt_cache_ttl_expiration() -> None:
+    """
+    Тест автоматического истечения TTL кеша.
+    """
+    # Создаём конфиг с коротким TTL
+    short_ttl_config = Config(
+        telegram_token="fake-token",
+        openrouter_api_key="fake-key",
+        openrouter_model="fake-model",
+        db_password="fake-password",
+        cache_ttl=1,  # 1 секунда TTL
+        cache_max_size=10,
+    )
+
+    mock_database = AsyncMock()
+    storage = Storage(mock_database, short_ttl_config)
+
+    user_id = 12345
+    prompt = "Test prompt"
+
+    # Добавляем в кеш
+    storage.prompt_cache[user_id] = prompt
+    assert user_id in storage.prompt_cache
+
+    # Ждём истечения TTL
+    await asyncio.sleep(1.5)
+
+    # Проверяем что запись исчезла из кеша
+    assert user_id not in storage.prompt_cache
+
+
+@pytest.mark.asyncio
+async def test_prompt_cache_max_size() -> None:
+    """
+    Тест ограничения размера кеша.
+    """
+    # Создаём конфиг с маленьким кешем
+    small_cache_config = Config(
+        telegram_token="fake-token",
+        openrouter_api_key="fake-key",
+        openrouter_model="fake-model",
+        db_password="fake-password",
+        cache_ttl=300,
+        cache_max_size=3,  # Только 3 записи
+    )
+
+    mock_database = AsyncMock()
+    storage = Storage(mock_database, small_cache_config)
+
+    # Добавляем 4 записи (больше maxsize)
+    storage.prompt_cache[1] = "Prompt 1"
+    storage.prompt_cache[2] = "Prompt 2"
+    storage.prompt_cache[3] = "Prompt 3"
+    storage.prompt_cache[4] = "Prompt 4"  # Это вытеснит самую старую
+
+    # Кеш должен содержать максимум 3 записи
+    assert len(storage.prompt_cache) == 3
+
+    # Самая старая запись (1) должна быть вытеснена
+    assert 1 not in storage.prompt_cache
+    assert 2 in storage.prompt_cache
+    assert 3 in storage.prompt_cache
+    assert 4 in storage.prompt_cache
