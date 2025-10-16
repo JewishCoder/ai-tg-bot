@@ -7,6 +7,11 @@ on:
     branches: [main, develop]
   workflow_dispatch:
 
+# Автоматическая отмена устаревших сборок при новых коммитах
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
 env:
   REGISTRY: cr.yandex
   IMAGE_NAME: sysaitgbot
