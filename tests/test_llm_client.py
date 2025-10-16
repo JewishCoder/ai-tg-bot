@@ -518,3 +518,141 @@ class TestLLMClientFallback:
         assert "Rate limit exceeded" in str(exc_info.value)
         # Только 3 попытки основной модели, нет fallback
         assert mock_client.chat.completions.create.call_count == 3
+
+
+class TestLLMClientEdgeCases:
+    """Тесты edge cases для LLMClient."""
+
+    @pytest.mark.asyncio
+    async def test_unicode_and_emoji_in_messages(
+        self,
+        test_config: Config,
+        mock_openai_client: AsyncMock,
+    ) -> None:
+        """
+        Тест: обработка Unicode символов и эмодзи.
+
+        Args:
+            test_config: Тестовая конфигурация
+            mock_openai_client: Mock клиента OpenAI
+        """
+        llm_client = LLMClient(test_config)
+        llm_client.client = mock_openai_client
+        user_id = 12345
+
+        # Сообщения с Unicode и эмодзи
+        messages = [
+            {"role": "system", "content": "Ты помощник 🤖"},
+            {"role": "user", "content": "Привет! 👋 Как дела? 你好"},
+            {"role": "assistant", "content": "Отлично! 😊 Чем могу помочь? 🌟"},
+        ]
+
+        response = await llm_client.generate_response(messages, user_id)
+
+        # Проверяем что запрос прошел
+        assert response == "Это тестовый ответ от LLM."
+        mock_openai_client.chat.completions.create.assert_called_once()
+
+        # Проверяем что эмодзи и unicode переданы корректно
+        call_kwargs = mock_openai_client.chat.completions.create.call_args.kwargs
+        assert "🤖" in str(call_kwargs["messages"])
+        assert "👋" in str(call_kwargs["messages"])
+        assert "你好" in str(call_kwargs["messages"])
+
+    @pytest.mark.asyncio
+    async def test_very_long_message(
+        self,
+        test_config: Config,
+        mock_openai_client: AsyncMock,
+    ) -> None:
+        """
+        Тест: обработка очень длинных сообщений (>10k символов).
+
+        Args:
+            test_config: Тестовая конфигурация
+            mock_openai_client: Mock клиента OpenAI
+        """
+        llm_client = LLMClient(test_config)
+        llm_client.client = mock_openai_client
+        user_id = 12345
+
+        # Генерируем очень длинное сообщение (>10k символов)
+        long_content = "А" * 15000  # 15k символов
+
+        messages = [
+            {"role": "system", "content": "Ты помощник"},
+            {"role": "user", "content": long_content},
+        ]
+
+        response = await llm_client.generate_response(messages, user_id)
+
+        # Проверяем что запрос прошел
+        assert response == "Это тестовый ответ от LLM."
+        mock_openai_client.chat.completions.create.assert_called_once()
+
+        # Проверяем что длинное сообщение передано
+        call_kwargs = mock_openai_client.chat.completions.create.call_args.kwargs
+        assert len(call_kwargs["messages"][1]["content"]) == 15000
+
+    @pytest.mark.asyncio
+    async def test_empty_string_in_messages(
+        self,
+        test_config: Config,
+        mock_openai_client: AsyncMock,
+    ) -> None:
+        """
+        Тест: обработка пустых строк в сообщениях.
+
+        Args:
+            test_config: Тестовая конфигурация
+            mock_openai_client: Mock клиента OpenAI
+        """
+        llm_client = LLMClient(test_config)
+        llm_client.client = mock_openai_client
+        user_id = 12345
+
+        # Сообщения с пустыми строками
+        messages = [
+            {"role": "system", "content": "Ты помощник"},
+            {"role": "user", "content": ""},  # Пустая строка
+            {"role": "assistant", "content": "OK"},
+            {"role": "user", "content": "   "},  # Только пробелы
+        ]
+
+        response = await llm_client.generate_response(messages, user_id)
+
+        # Проверяем что запрос прошел
+        assert response == "Это тестовый ответ от LLM."
+        mock_openai_client.chat.completions.create.assert_called_once()
+
+    @pytest.mark.asyncio
+    async def test_special_characters_in_messages(
+        self,
+        test_config: Config,
+        mock_openai_client: AsyncMock,
+    ) -> None:
+        """
+        Тест: обработка специальных символов в сообщениях.
+
+        Args:
+            test_config: Тестовая конфигурация
+            mock_openai_client: Mock клиента OpenAI
+        """
+        llm_client = LLMClient(test_config)
+        llm_client.client = mock_openai_client
+        user_id = 12345
+
+        # Сообщения со спецсимволами
+        messages = [
+            {"role": "system", "content": "Ты помощник"},
+            {
+                "role": "user",
+                "content": "Привет\\n\\t<script>alert('test')</script>\\r\\n\"\\'",
+            },
+        ]
+
+        response = await llm_client.generate_response(messages, user_id)
+
+        # Проверяем что запрос прошел без ошибок
+        assert response == "Это тестовый ответ от LLM."
+        mock_openai_client.chat.completions.create.assert_called_once()

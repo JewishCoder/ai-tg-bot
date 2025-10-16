@@ -950,3 +950,154 @@ async def test_prompt_cache_max_size() -> None:
     assert 2 in storage.prompt_cache
     assert 3 in storage.prompt_cache
     assert 4 in storage.prompt_cache
+
+
+# Edge Cases Tests
+
+
+@pytest.mark.asyncio
+async def test_storage_concurrent_requests(mock_database: AsyncMock, test_config: Config) -> None:
+    """
+    Тест: одновременные запросы к Storage (concurrency).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    import asyncio
+
+    storage = Storage(mock_database, test_config)
+
+    # Создаем моки для ensure_user_exists
+    async def mock_ensure_user(_user_id: int) -> None:
+        await asyncio.sleep(0.01)  # Имитация async операции
+
+    async def mock_get_settings(_user_id: int) -> MagicMock:
+        mock_settings = MagicMock()
+        mock_settings.system_prompt = "Test prompt"
+        mock_settings.max_history_messages = 50
+        return mock_settings
+
+    # Патчим методы через monkeypatch (но у нас его нет в фикстуре)
+    # Будем использовать direct patching
+    storage._ensure_user_exists = mock_ensure_user  # type: ignore[method-assign]
+    storage._get_user_settings = mock_get_settings  # type: ignore[method-assign]
+
+    # Запускаем несколько одновременных запросов
+    tasks = [storage.get_system_prompt(i) for i in range(1, 11)]
+
+    # Все должны завершиться успешно
+    results = await asyncio.gather(*tasks, return_exceptions=True)
+
+    # Проверяем что нет исключений
+    for result in results:
+        assert not isinstance(result, Exception)
+        assert result == "Test prompt"
+
+
+@pytest.mark.asyncio
+async def test_storage_unicode_and_emoji_in_messages(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест: сохранение сообщений с Unicode и эмодзи.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    messages = [
+        {
+            "role": "user",
+            "content": "Привет! 👋 Как дела?",
+            "timestamp": datetime.now(UTC).isoformat(),
+        },
+        {
+            "role": "assistant",
+            "content": "Отлично! 😊 你好",
+            "timestamp": datetime.now(UTC).isoformat(),
+        },
+    ]
+
+    # Мокируем _save_history_attempt напрямую
+    async def mock_save_attempt(_user_id: int, _messages: list[dict]) -> None:
+        # Просто проверяем что unicode передается корректно
+        assert any("👋" in msg.get("content", "") for msg in _messages)
+        assert any("你好" in msg.get("content", "") for msg in _messages)
+
+    storage._save_history_attempt = mock_save_attempt  # type: ignore[method-assign]
+
+    # Вызываем save_history - не должно быть ошибок
+    await storage.save_history(user_id, messages)
+
+    # Тест прошел если нет исключений
+
+
+@pytest.mark.asyncio
+async def test_storage_very_long_message_content(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест: сохранение очень длинного сообщения (>10k символов).
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    # Генерируем очень длинное сообщение
+    long_content = "А" * 15000
+
+    messages = [
+        {"role": "user", "content": long_content, "timestamp": datetime.now(UTC).isoformat()},
+    ]
+
+    # Мокируем _save_history_attempt напрямую
+    async def mock_save_attempt(_user_id: int, _messages: list[dict]) -> None:
+        # Проверяем что длинное сообщение передается корректно
+        assert any(len(msg.get("content", "")) == 15000 for msg in _messages)
+
+    storage._save_history_attempt = mock_save_attempt  # type: ignore[method-assign]
+
+    # Вызываем save_history - не должно быть ошибок
+    await storage.save_history(user_id, messages)
+
+    # Тест прошел если нет исключений
+
+
+@pytest.mark.asyncio
+async def test_storage_empty_string_in_content(
+    mock_database: AsyncMock, test_config: Config
+) -> None:
+    """
+    Тест: сохранение сообщений с пустым content.
+
+    Args:
+        mock_database: Mock базы данных
+        test_config: Тестовая конфигурация
+    """
+    storage = Storage(mock_database, test_config)
+    user_id = 12345
+
+    messages = [
+        {"role": "user", "content": "", "timestamp": datetime.now(UTC).isoformat()},
+        {"role": "assistant", "content": "   ", "timestamp": datetime.now(UTC).isoformat()},
+    ]
+
+    # Мокируем _save_history_attempt напрямую
+    async def mock_save_attempt(_user_id: int, _messages: list[dict]) -> None:
+        # Проверяем что пустые строки передаются корректно
+        contents = [msg.get("content", "") for msg in _messages]
+        assert "" in contents or "   " in contents
+
+    storage._save_history_attempt = mock_save_attempt  # type: ignore[method-assign]
+
+    # Вызываем save_history - не должно быть ошибок
+    await storage.save_history(user_id, messages)
+
+    # Тест прошел если нет исключений
