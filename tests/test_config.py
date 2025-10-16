@@ -18,6 +18,7 @@ class TestConfig:
         # Arrange: устанавливаем обязательные переменные окружения
         monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123")
         monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key_456")
+        monkeypatch.setenv("DB_PASSWORD", "test_password")
         monkeypatch.setenv("OPENROUTER_FALLBACK_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
 
         # Act: создаём конфигурацию
@@ -36,6 +37,7 @@ class TestConfig:
         # Arrange: устанавливаем только обязательные переменные
         monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123")
         monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key_456")
+        monkeypatch.setenv("DB_PASSWORD", "test_password")
         # НЕ устанавливаем OPENROUTER_FALLBACK_MODEL
 
         # Act: создаём конфигурацию без fallback модели
@@ -54,6 +56,7 @@ class TestConfig:
         # Arrange: устанавливаем fallback модель как пустую строку
         monkeypatch.setenv("TELEGRAM_TOKEN", "test_token_123")
         monkeypatch.setenv("OPENROUTER_API_KEY", "test_api_key_456")
+        monkeypatch.setenv("DB_PASSWORD", "test_password")
         monkeypatch.setenv("OPENROUTER_FALLBACK_MODEL", "")
 
         # Act: создаём конфигурацию
@@ -72,6 +75,7 @@ class TestConfig:
         # Arrange: устанавливаем переменные окружения
         monkeypatch.setenv("TELEGRAM_TOKEN", "test_token")
         monkeypatch.setenv("OPENROUTER_API_KEY", "test_key")
+        monkeypatch.setenv("DB_PASSWORD", "test_password")
         monkeypatch.setenv("OPENROUTER_MODEL", "anthropic/claude-3.5-sonnet")
         monkeypatch.setenv("OPENROUTER_FALLBACK_MODEL", "meta-llama/llama-3.1-8b-instruct:free")
 
@@ -87,3 +91,5 @@ class TestConfig:
         assert config.openrouter_base_url == "https://openrouter.ai/api/v1"
         assert config.llm_temperature == 0.7
         assert config.retry_attempts == 3
+        # Проверяем БД поля
+        assert config.db_password == "test_password"
