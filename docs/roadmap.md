@@ -28,7 +28,7 @@
 | **S2** | **Технический долг и оптимизации** | ✅ Завершено | Устранение технического долга по результатам code review. Исправление критичных проблем с производительностью и безопасностью, оптимизация работы с БД, улучшение тестирования и документации | • ✅ Блок 1: Критичные исправления (4/4)<br>• ✅ Блок 2: Средние улучшения (5/5)<br>• ✅ Блок 3: Низкоприоритетные (4/4)<br>• 117 тестов (89% coverage)<br>• Security hardening<br>• API документация | [tasklist-S2.md](tasklists/tasklist-S2.md) |
 | **S3** | **API Requirements & Mock Implementation** | ✅ Завершено | Разработка требований к дашборду статистики диалогов и реализация Mock API. Проектирование контракта API и архитектуры сборщика статистики | • ✅ Функциональные требования к дашборду<br>• ✅ Контракт API для статистики (KISS)<br>• ✅ Интерфейс StatCollector (Mock/Real)<br>• ✅ Mock реализация StatCollector<br>• ✅ FastAPI приложение и Docker<br>• ✅ Makefile команды и автоматизация<br>• ✅ API документация (архитектура) | [tasklist-S3.md](tasklists/tasklist-S3.md) |
 | **S4** | **Frontend Framework Setup** | ✅ Завершено | Создание концепции и инфраструктуры frontend проекта. Выбор технологического стека и настройка инструментов разработки | • ✅ Next.js 15 + TypeScript 5 + npm<br>• ✅ shadcn/ui (10+ компонентов)<br>• ✅ Структура проекта и конфигурация<br>• ✅ ESLint, Prettier, pre-commit hooks<br>• ✅ Vitest + Testing Library<br>• ✅ API client с React Query<br>• ✅ Makefile команды<br>• ✅ Docker конфигурация | [tasklist-S4.md](tasklists/tasklist-S4.md) |
-| **S5** | **Dashboard Implementation** | ⏳ Планируется | Реализация дашборда статистики диалогов на основе референса и интеграция с Mock API | • UI компоненты дашборда<br>• Интеграция с Mock API<br>• Визуализация статистики<br>• Responsive design<br>• Тестирование и отладка<br>• Документация компонентов | Будет создан в Plan Mode |
+| **S5** | **Dashboard Implementation** | ⏳ Планируется | Реализация дашборда статистики диалогов на основе референса и интеграция с Mock API | • Dashboard Layout и Period Filter<br>• Summary Cards (3 метрики)<br>• Activity Timeline Chart (Recharts)<br>• Recent Dialogs & Top Users Tables<br>• Responsive Design & States<br>• Testing & Documentation | [tasklist-S5.md](tasklists/tasklist-S5.md) |
 | **S6** | **AI Chat Implementation** | ⏳ Планируется | Реализация веб-чата для администратора с возможностью задавать вопросы по статистике диалогов через text-to-SQL | • API endpoints для чата<br>• Text-to-SQL интеграция<br>• UI компоненты чата<br>• LLM integration для ответов<br>• Real-time updates<br>• Тестирование workflow | Будет создан в Plan Mode |
 | **S7** | **Real API Integration** | ⏳ Планируется | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • Real StatCollector implementation<br>• Интеграция с БД (PostgreSQL)<br>• Оптимизация SQL запросов<br>• Переключение Mock → Real<br>• Тестирование производительности<br>• Документация API | Будет создан в Plan Mode |
 
@@ -65,16 +65,18 @@
 
 ### Спринт S5: Dashboard Implementation
 
-**Цель**: Реализовать дашборд статистики диалогов на основе референса с интеграцией к Mock API.
+**Цель**: Реализовать полнофункциональный дашборд статистики диалогов с интеграцией к Mock API.
 
 **Состав работ**:
 
-- Разработка UI компонентов дашборда согласно референсу
-- Интеграция с Mock API для получения статистики
-- Реализация визуализации данных (графики, метрики, таблицы)
-- Адаптивный дизайн для различных разрешений экрана
-- Тестирование функциональности и UI/UX
-- Документация компонентов и их использования
+- **Блок 1**: Dashboard Layout и Period Filter (Day/Week/Month)
+- **Блок 2**: Summary Cards компоненты (Total Users, Total Messages, Active Dialogs)
+- **Блок 3**: Activity Timeline Chart с Recharts (двойная линия для сообщений и пользователей)
+- **Блок 4**: Recent Dialogs и Top Users таблицы с форматированием данных
+- **Блок 5**: Responsive Design для всех разрешений, Loading/Error/Empty states
+- **Блок 6**: Unit и integration тесты, документация компонентов
+- Интеграция date-fns и lucide-react
+- Coverage >= 80% для всех dashboard компонентов
 
 ### Спринт S6: AI Chat Implementation
 
@@ -120,6 +122,8 @@
 - 2025-10-16: Добавлен спринт S1 (Хранение данных в БД)
 - 2025-10-16: Добавлен спринт S2 (Технический долг и оптимизации) на основе code review
 - 2025-10-17: Добавлены спринты S3-S7 (Frontend и API развитие): требования к дашборду, Mock API, каркас frontend, реализация dashboard, AI чат, интеграция с Real API
-- 2025-10-17: Создан детальный tasklist для Спринта S4 (Frontend Framework Setup) с технологическим стеком: Next.js, React, TypeScript, shadcn/ui, Tailwind CSS, pnpm
+- 2025-10-17: Создан детальный tasklist для Спринта S4 (Frontend Framework Setup) с технологическим стеком: Next.js 15, TypeScript 5, shadcn/ui, Tailwind CSS, npm
+- 2025-10-17: Спринт S4 завершен - полностью настроен frontend (Next.js, shadcn/ui, ESLint, Prettier, Vitest, React Query, Docker)
+- 2025-10-17: Создан детальный tasklist для Спринта S5 (Dashboard Implementation) - 6 блоков работ для реализации полного дашборда с интеграцией Mock API
 
 ---
