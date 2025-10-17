@@ -333,26 +333,26 @@ class MockStatCollector(StatCollector):
 **Цель**: Реализовать REST API сервер на FastAPI с поддержкой OpenAPI документации.
 
 **Что нужно сделать**:
-- [ ] Добавить зависимости в `backend/api/pyproject.toml`:
+- [x] Добавить зависимости в `backend/api/pyproject.toml`:
   - `fastapi`
   - `uvicorn[standard]`
   - `pydantic`
   - `pydantic-settings`
-- [ ] Создать `backend/api/src/config.py` с конфигурацией API:
+- [x] Создать `backend/api/src/config.py` с конфигурацией API:
   - `API_HOST`, `API_PORT`
   - `API_VERSION`
   - `STAT_COLLECTOR_TYPE` (mock/real)
   - `CORS_ORIGINS`
-- [ ] Создать `backend/api/src/app.py` с FastAPI приложением:
+- [x] Создать `backend/api/src/app.py` с FastAPI приложением:
   - Настроить CORS
   - Настроить OpenAPI metadata
   - Добавить healthcheck endpoint (`GET /health`)
   - Подключить роутер для stats
-- [ ] Создать `backend/api/src/routers/__init__.py`
-- [ ] Создать `backend/api/src/routers/stats.py` с endpoints:
+- [x] Создать `backend/api/src/routers/__init__.py`
+- [x] Создать `backend/api/src/routers/stats.py` с endpoints:
   - `GET /stats` (единственный endpoint)
-- [ ] Добавить dependency injection для StatCollector
-- [ ] Настроить логирование запросов
+- [x] Добавить dependency injection для StatCollector
+- [x] Настроить логирование запросов
 
 **Файлы для создания**:
 - `backend/api/pyproject.toml` (новый)
@@ -402,14 +402,14 @@ async def health_check():
 **Цель**: Создать роутер для stats endpoints с валидацией и обработкой ошибок.
 
 **Что нужно сделать**:
-- [ ] Реализовать `GET /stats` endpoint:
+- [x] Реализовать `GET /stats` endpoint:
   - Query параметр: `period` (обязательный, enum: 'day', 'week', 'month')
   - Response: `StatsResponse` модель
   - Валидация параметра period
-- [ ] Добавить обработку ошибок:
+- [x] Добавить обработку ошибок:
   - 400 Bad Request (невалидный period)
   - 500 Internal Server Error
-- [ ] Реализовать dependency для получения StatCollector:
+- [x] Реализовать dependency для получения StatCollector:
   ```python
   from typing import Literal
   
@@ -428,8 +428,8 @@ async def health_check():
       """Получить статистику за указанный период."""
       return await collector.get_stats(period)
   ```
-- [ ] Добавить OpenAPI описания и примеры для каждого периода
-- [ ] Написать интеграционные тесты для endpoint (3 теста для разных периодов)
+- [x] Добавить OpenAPI описания и примеры для каждого периода
+- [x] Написать интеграционные тесты для endpoint (3 теста для разных периодов)
 
 **Файлы для изменения**:
 - `backend/api/src/routers/stats.py` - реализация роутера
@@ -454,7 +454,7 @@ async def health_check():
 **Цель**: Создать отдельную точку входа для запуска API сервера (не main.py).
 
 **Что нужно сделать**:
-- [ ] Создать `backend/api/run_api.py` (отдельный entrypoint):
+- [x] Создать `backend/api/run_api.py` (отдельный entrypoint):
   - Загрузка конфигурации из `.env`
   - Настройка логирования
   - Запуск uvicorn сервера
@@ -479,7 +479,7 @@ async def health_check():
           log_level=config.LOG_LEVEL.lower()
       )
   ```
-- [ ] Создать `backend/api/.env.example` с примером конфигурации:
+- [x] Создать `backend/api/.env.example` с примером конфигурации:
   ```env
   API_HOST=0.0.0.0
   API_PORT=8000
@@ -488,7 +488,7 @@ async def health_check():
   CORS_ORIGINS=["http://localhost:3000"]
   LOG_LEVEL=INFO
   ```
-- [ ] Добавить README для API в `backend/api/README.md`:
+- [x] Добавить README для API в `backend/api/README.md`:
   - Описание API
   - Инструкция по запуску
   - Примеры использования
@@ -516,7 +516,7 @@ async def health_check():
 **Цель**: Автоматизировать запуск и тестирование API через Makefile.
 
 **Что нужно сделать**:
-- [ ] Добавить команды в корневой `Makefile`:
+- [x] Добавить команды в корневой `Makefile`:
   ```makefile
   # API команды
   .PHONY: api-install
@@ -560,12 +560,12 @@ async def health_check():
       @echo "API документация доступна на: http://localhost:8000/docs"
       @echo "Запустите 'make api-dev' для доступа к документации"
   ```
-- [ ] Добавить скрипт для тестирования API `scripts/test-api.sh`:
+- [x] Добавить скрипт для тестирования API `scripts/test-api.sh`:
   - Запуск API
   - Проверка healthcheck
   - Тестовый запрос к stats endpoint
   - Вывод результатов
-- [ ] Обновить корневой `README.md` с инструкциями по API
+- [x] Обновить корневой `README.md` с инструкциями по API
 
 **Файлы для изменения**:
 - `Makefile` - добавить API команды
@@ -590,19 +590,19 @@ async def health_check():
 **Цель**: Настроить FastAPI для автоматической генерации качественной API документации.
 
 **Что нужно сделать**:
-- [ ] Улучшить OpenAPI metadata в `app.py`:
+- [x] Улучшить OpenAPI metadata в `app.py`:
   - Подробное описание API
   - Контактная информация
   - Лицензия
   - Теги для группировки endpoints
-- [ ] Добавить детальные описания для endpoints:
+- [x] Добавить детальные описания для endpoints:
   - Summary и description
   - Примеры запросов
   - Примеры ответов
   - Описание error codes
-- [ ] Настроить Swagger UI кастомизацию
-- [ ] Добавить примеры в Pydantic модели (через `Config.json_schema_extra`)
-- [ ] Экспортировать OpenAPI schema в JSON файл для использования в frontend
+- [x] Настроить Swagger UI кастомизацию
+- [x] Добавить примеры в Pydantic модели (через `Config.json_schema_extra`)
+- [x] Экспортировать OpenAPI schema в JSON файл для использования в frontend
 
 **Файлы для изменения**:
 - `backend/api/src/app.py` - улучшить metadata
@@ -670,19 +670,19 @@ async def get_stats(
 **Цель**: Документировать архитектурные решения и структуру API проекта.
 
 **Что нужно сделать**:
-- [ ] Создать `docs/api/architecture.md`:
+- [x] Создать `docs/api/architecture.md`:
   - Общая архитектура API
   - Диаграмма компонентов (Mermaid)
   - StatCollector pattern (Strategy)
   - Dependency Injection
-- [ ] Создать `docs/api/mock-collector.md`:
+- [x] Создать `docs/api/mock-collector.md`:
   - Описание Mock реализации
   - Алгоритм генерации данных
   - Примеры использования
-- [ ] Обновить `docs/roadmap.md`:
+- [x] Обновить `docs/roadmap.md`:
   - Отметить прогресс спринта S3
   - Добавить ссылку на план спринта
-- [ ] Создать диаграммы:
+- [x] Создать диаграммы:
   - Структура API проекта
   - Flow запроса к stats endpoint
   - StatCollector Strategy pattern
@@ -707,25 +707,25 @@ async def get_stats(
 2. **Coverage**: `make api-test-cov` - должен быть >= 80%
 3. **Lint и type checking**: добавить в Makefile и проверить
 4. **Ручное тестирование**:
-   - [ ] Запустить API: `make api-dev`
-   - [ ] Открыть Swagger UI: http://localhost:8000/docs
-   - [ ] Проверить healthcheck endpoint: `GET /health`
-   - [ ] Выполнить запросы к `/stats` с разными периодами:
+   - [x] Запустить API: `make api-dev`
+   - [x] Открыть Swagger UI: http://localhost:8000/docs
+   - [x] Проверить healthcheck endpoint: `GET /health`
+   - [x] Выполнить запросы к `/stats` с разными периодами:
      - `GET /stats?period=day`
      - `GET /stats?period=week`
      - `GET /stats?period=month`
-   - [ ] Проверить response schema соответствует спецификации:
+   - [x] Проверить response schema соответствует спецификации:
      - summary (total_dialogs, active_users, avg_dialog_length)
      - activity_timeline (массив с timestamp, message_count, active_users)
      - recent_dialogs (массив с метаданными диалогов)
      - top_users (массив топ пользователей)
-   - [ ] Проверить обработку невалидных параметров:
+   - [x] Проверить обработку невалидных параметров:
      - Запрос без параметра period (ошибка 422)
      - Запрос с невалидным period=invalid (ошибка 422)
 5. **Integration тестирование**:
-   - [ ] Запустить скрипт: `bash scripts/test-api.sh`
-   - [ ] Проверить что все endpoints отвечают корректно
-   - [ ] Проверить CORS headers
+   - [x] Запустить скрипт: `bash scripts/test-api.sh`
+   - [x] Проверить что все endpoints отвечают корректно
+   - [x] Проверить CORS headers
 
 ---
 
@@ -805,22 +805,22 @@ backend/api/
 
 ## ✅ Чеклист завершения спринта
 
-- [ ] Все задачи из Блока 1 (Требования и проектирование) завершены
-- [ ] Все задачи из Блока 2 (Архитектура StatCollector) завершены
-- [ ] Все задачи из Блока 3 (API Server) завершены
-- [ ] Все задачи из Блока 4 (Entrypoint и автоматизация) завершены
-- [ ] Все задачи из Блока 5 (Документация) завершены
-- [ ] Coverage >= 80%
-- [ ] Все тесты проходят
-- [ ] OpenAPI документация полная и актуальна
-- [ ] Makefile команды работают
-- [ ] Ручное тестирование пройдено
-- [ ] Документация обновлена
-- [ ] README.md актуализирован
-- [ ] Roadmap обновлен со ссылкой на план спринта
+- [x] Все задачи из Блока 1 (Требования и проектирование) завершены
+- [x] Все задачи из Блока 2 (Архитектура StatCollector) завершены
+- [x] Все задачи из Блока 3 (API Server) завершены
+- [x] Все задачи из Блока 4 (Entrypoint и автоматизация) завершены
+- [x] Все задачи из Блока 5 (Документация) завершены
+- [x] Coverage >= 80%
+- [x] Все тесты проходят
+- [x] OpenAPI документация полная и актуальна
+- [x] Makefile команды работают
+- [x] Ручное тестирование пройдено
+- [x] Документация обновлена
+- [x] README.md актуализирован
+- [x] Roadmap обновлен со ссылкой на план спринта
 
 ---
 
-**Статус обновления**: 2025-10-17 - Спринт создан для разработки Mock API
+**Статус обновления**: 2025-10-17 - Спринт завершен, все задачи выполнены, чеклисты обновлены
 
 
