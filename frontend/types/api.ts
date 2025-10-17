@@ -1,7 +1,7 @@
 export interface Summary {
-  total_dialogs: number
-  active_users: number
-  avg_dialog_length: number
+  total_users: number
+  total_messages: number
+  active_dialogs: number
 }
 
 export interface ActivityPoint {
@@ -11,17 +11,15 @@ export interface ActivityPoint {
 }
 
 export interface RecentDialog {
-  dialog_id: string
   user_id: number
   message_count: number
-  last_activity: string
+  last_message_at: string
   duration_minutes: number
 }
 
 export interface TopUser {
   user_id: number
-  username: string
-  message_count: number
+  total_messages: number
   dialog_count: number
   last_activity: string
 }
