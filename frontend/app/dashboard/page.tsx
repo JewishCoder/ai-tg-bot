@@ -19,7 +19,13 @@ export default function DashboardPage() {
 
   if (error) {
     return (
-      <SidebarProvider defaultOpen={false}>
+      <SidebarProvider
+        defaultOpen={true}
+        style={{
+          "--sidebar-width": "14rem",
+          "--sidebar-width-icon": "3rem",
+        } as React.CSSProperties}
+      >
         <AppSidebar />
         <SidebarInset>
           <Header />
@@ -32,8 +38,14 @@ export default function DashboardPage() {
   }
 
   return (
-    <SidebarProvider defaultOpen={false}>
-      <AppSidebar />
+    <SidebarProvider
+      defaultOpen={true}
+        style={{
+          "--sidebar-width": "14rem",
+          "--sidebar-width-icon": "3rem",
+        } as React.CSSProperties}
+    >
+        <AppSidebar />
       <SidebarInset>
         <Header />
         <div className="flex flex-1 flex-col gap-4 p-4 md:gap-8 md:p-6">
@@ -46,22 +58,22 @@ export default function DashboardPage() {
             </div>
             <PeriodFilter value={period} onChange={setPeriod} />
           </div>
-          
+
           <SummarySection data={stats?.summary} isLoading={isLoading} />
-          
-          <ActivityChart 
-            data={stats?.activity_timeline || []} 
+
+          <ActivityChart
+            data={stats?.activity_timeline || []}
             period={period}
             isLoading={isLoading}
           />
-          
+
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
-            <RecentDialogsTable 
-              data={stats?.recent_dialogs || []} 
+            <RecentDialogsTable
+              data={stats?.recent_dialogs || []}
               isLoading={isLoading}
             />
-            <TopUsersTable 
-              data={stats?.top_users || []} 
+            <TopUsersTable
+              data={stats?.top_users || []}
               isLoading={isLoading}
             />
           </div>

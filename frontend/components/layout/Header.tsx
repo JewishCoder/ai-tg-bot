@@ -3,6 +3,7 @@ import { Github } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { SidebarTrigger } from "@/components/ui/sidebar"
 import { Separator } from "@/components/ui/separator"
+import { ThemeToggle } from "@/components/ui/theme-toggle"
 import { siteConfig } from "@/config/site"
 
 export function Header() {
@@ -14,16 +15,19 @@ export function Header() {
         <div>
           <h1 className="text-lg font-semibold">{siteConfig.name}</h1>
         </div>
-        <Button variant="ghost" size="icon" asChild>
-          <Link 
-            href={siteConfig.links.github} 
-            target="_blank" 
-            rel="noopener noreferrer"
-            aria-label="GitHub repository"
-          >
-            <Github className="h-5 w-5" />
-          </Link>
-        </Button>
+        <div className="flex items-center gap-2">
+          <ThemeToggle />
+          <Button variant="ghost" size="icon" asChild>
+            <Link
+              href={siteConfig.links.github}
+              target="_blank"
+              rel="noopener noreferrer"
+              aria-label="GitHub repository"
+            >
+              <Github className="h-5 w-5" />
+            </Link>
+          </Button>
+        </div>
       </div>
     </header>
   )
