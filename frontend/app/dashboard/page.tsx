@@ -4,6 +4,7 @@ import { useState } from "react"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { PeriodFilter } from "@/components/dashboard/PeriodFilter"
 import { SummarySection } from "@/components/dashboard/SummarySection"
+import { ActivityChart } from "@/components/dashboard/ActivityChart"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Header } from "@/components/layout/Header"
 import { Period } from "@/types/api"
@@ -31,7 +32,13 @@ export default function DashboardPage() {
           
           <SummarySection data={stats?.summary} isLoading={isLoading} />
           
-          {/* Здесь будут остальные компоненты дашборда */}
+          <ActivityChart 
+            data={stats?.activity_timeline || []} 
+            period={period}
+            isLoading={isLoading}
+          />
+          
+          {/* Здесь будут таблицы дашборда */}
         </div>
       </SidebarInset>
     </SidebarProvider>
