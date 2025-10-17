@@ -57,6 +57,19 @@ help:
 	@echo "  make api-lint      - Check API code quality"
 	@echo "  make api-format    - Format API code"
 	@echo ""
+	@echo "Frontend Development:"
+	@echo "  make frontend-install     - Install frontend dependencies"
+	@echo "  make frontend-dev         - Run frontend dev server"
+	@echo "  make frontend-build       - Build frontend for production"
+	@echo "  make frontend-start       - Start production server"
+	@echo "  make frontend-lint        - Check frontend code quality"
+	@echo "  make frontend-format      - Format frontend code"
+	@echo "  make frontend-type-check  - Check TypeScript types"
+	@echo "  make frontend-test        - Run frontend tests"
+	@echo "  make frontend-test-cov    - Run frontend tests with coverage"
+	@echo "  make frontend-check       - Run all frontend checks"
+	@echo "  make frontend-clean       - Clean frontend build files"
+	@echo ""
 	@echo "Database Migrations:"
 	@echo "  make db-migrate    - Apply all pending migrations"
 	@echo "  make db-rollback   - Rollback last migration"
@@ -150,6 +163,69 @@ api-format:
 	@echo "Formatting API code..."
 	@$(UV_API) run ruff format src/ tests/
 	@$(UV_API) run ruff check --fix src/ tests/
+
+# ===== Frontend Development =====
+
+FRONTEND_DIR := frontend
+
+frontend-install:
+	@echo "Installing frontend dependencies..."
+	cd $(FRONTEND_DIR) && npm install
+	@echo "Frontend dependencies installed successfully!"
+
+frontend-dev:
+	@echo "Starting frontend dev server..."
+	cd $(FRONTEND_DIR) && npm run dev
+
+frontend-build:
+	@echo "Building frontend for production..."
+	cd $(FRONTEND_DIR) && npm run build
+	@echo "Frontend built successfully!"
+
+frontend-start:
+	@echo "Starting production server..."
+	cd $(FRONTEND_DIR) && npm start
+
+frontend-lint:
+	@echo "Checking frontend code quality..."
+	cd $(FRONTEND_DIR) && npm run lint
+
+frontend-format:
+	@echo "Formatting frontend code..."
+	cd $(FRONTEND_DIR) && npm run format
+
+frontend-type-check:
+	@echo "Checking TypeScript types..."
+	cd $(FRONTEND_DIR) && npm run type-check
+
+frontend-test:
+	@echo "Running frontend tests..."
+	cd $(FRONTEND_DIR) && npm run test -- --run
+
+frontend-test-cov:
+	@echo "Running frontend tests with coverage..."
+	cd $(FRONTEND_DIR) && npm run test:coverage -- --run
+
+frontend-clean:
+	@echo "Cleaning frontend build files..."
+ifeq ($(DETECTED_OS),Windows)
+	cd $(FRONTEND_DIR) && powershell -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue .next,out,node_modules"
+else
+	cd $(FRONTEND_DIR) && rm -rf .next out node_modules
+endif
+	@echo "Frontend cleaned successfully!"
+
+frontend-check: frontend-lint frontend-type-check frontend-test
+	@echo "✅ All frontend checks passed!"
+
+frontend-docker-build:
+	@echo "Building frontend Docker image..."
+	cd $(FRONTEND_DIR) && docker build -t ai-tg-bot-frontend .
+	@echo "Frontend Docker image built successfully!"
+
+frontend-docker-run:
+	@echo "Running frontend in Docker..."
+	docker run -p 3000:3000 ai-tg-bot-frontend
 
 # ===== Database Migrations =====
 
