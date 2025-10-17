@@ -8,4 +8,3 @@ export const apiConfig = {
 }
 
 export type ApiConfig = typeof apiConfig
-
