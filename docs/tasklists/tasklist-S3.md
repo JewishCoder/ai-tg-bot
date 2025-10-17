@@ -170,10 +170,10 @@
 **Цель**: Создать абстрактный интерфейс для сборщиков статистики с поддержкой Mock и Real реализаций.
 
 **Что нужно сделать**:
-- [ ] Создать `backend/api/src/__init__.py`
-- [ ] Создать `backend/api/src/stats/__init__.py`
-- [ ] Создать `backend/api/src/stats/collector.py` с абстрактным классом `StatCollector`
-- [ ] Определить интерфейс:
+- [x] Создать `backend/api/src/__init__.py`
+- [x] Создать `backend/api/src/stats/__init__.py`
+- [x] Создать `backend/api/src/stats/collector.py` с абстрактным классом `StatCollector`
+- [x] Определить интерфейс:
   ```python
   from abc import ABC, abstractmethod
   from dataclasses import dataclass
@@ -196,15 +196,15 @@
           """
           pass
   ```
-- [ ] Добавить dataclasses для типизации в `backend/api/src/stats/models.py`:
+- [x] Добавить dataclasses для типизации в `backend/api/src/stats/models.py`:
   - `Summary` (всего диалогов, активных пользователей, средняя длина)
   - `ActivityPoint` (точка на графике активности)
   - `RecentDialog` (последний диалог с метаданными)
   - `TopUser` (топ пользователь)
   - `StatsResponse` (root model)
-- [ ] Создать `backend/api/src/stats/models.py` с dataclasses
-- [ ] Добавить docstrings и type hints
-- [ ] Добавить валидацию периода (enum или literal type)
+- [x] Создать `backend/api/src/stats/models.py` с dataclasses
+- [x] Добавить docstrings и type hints
+- [x] Добавить валидацию периода (enum или literal type)
 
 **Файлы для создания**:
 - `backend/api/src/__init__.py` (новый)
@@ -229,20 +229,20 @@
 **Цель**: Создать Mock реализацию StatCollector, генерирующую реалистичные тестовые данные.
 
 **Что нужно сделать**:
-- [ ] Создать `backend/api/src/stats/mock_collector.py`
-- [ ] Реализовать класс `MockStatCollector(StatCollector)`
-- [ ] Реализовать генерацию реалистичных данных:
+- [x] Создать `backend/api/src/stats/mock_collector.py`
+- [x] Реализовать класс `MockStatCollector(StatCollector)`
+- [x] Реализовать генерацию реалистичных данных:
   - Summary: всего диалогов (100-500), активных пользователей (50-200), средняя длина диалога (10-30 сообщений)
   - Activity Timeline: почасовые/дневные данные в зависимости от периода с естественными вариациями
   - Recent Dialogs: 10-20 последних диалогов с метаданными (ID, пользователь, длина, длительность)
   - Top Users: 10-15 пользователей с различной активностью (количество диалогов и сообщений)
-- [ ] Добавить логику фильтрации по периодам:
+- [x] Добавить логику фильтрации по периодам:
   - `day`: почасовые данные за последние 24 часа
   - `week`: дневные данные за последние 7 дней
   - `month`: дневные данные за последние 30 дней
-- [ ] Использовать `random` с фиксированным seed для воспроизводимости
-- [ ] Добавить логирование генерации данных
-- [ ] Написать unit-тесты для Mock реализации (3 теста для разных периодов)
+- [x] Использовать `random` с фиксированным seed для воспроизводимости
+- [x] Добавить логирование генерации данных
+- [x] Написать unit-тесты для Mock реализации (3 теста для разных периодов)
 
 **Файлы для создания**:
 - `backend/api/src/stats/mock_collector.py` (новый)
