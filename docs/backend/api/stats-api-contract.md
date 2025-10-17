@@ -599,9 +599,9 @@ API автоматически генерирует OpenAPI (Swagger) докум
 
 ## 🔗 Связанные документы
 
-- [Dashboard Requirements](../frontend/dashboard-requirements.md) - требования к UI
-- [Vision](../vision.md) - техническое видение проекта
-- [Roadmap](../roadmap.md) - план развития
+- [Dashboard Requirements](../../frontend/dashboard-requirements.md) - требования к UI
+- [Vision](../../vision.md) - техническое видение проекта
+- [Roadmap](../../roadmap.md) - план развития
 
 ---
 

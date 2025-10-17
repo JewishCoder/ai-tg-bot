@@ -138,7 +138,7 @@ backend/api/
 
 ## Связанные документы
 
-- [API Contract](../../docs/api/stats-api-contract.md) - спецификация REST API
+- [API Contract](../../docs/backend/api/stats-api-contract.md) - спецификация REST API
 - [Dashboard Requirements](../../docs/frontend/dashboard-requirements.md) - требования к UI
 - [Roadmap](../../docs/roadmap.md) - план развития проекта
 - [Tasklist S3](../../docs/tasklists/tasklist-S3.md) - детальный план спринта

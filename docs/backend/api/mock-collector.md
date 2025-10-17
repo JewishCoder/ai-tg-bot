@@ -431,7 +431,7 @@ print(f"Average: {(end - start) / 1000 * 1000:.2f}ms per request")
 
 - [Architecture](architecture.md) - общая архитектура API
 - [API Contract](stats-api-contract.md) - REST API specification
-- [Test Coverage Report](../../backend/api/htmlcov/index.html) - детальный coverage
+- [Test Coverage Report](../../../backend/api/htmlcov/index.html) - детальный coverage
 
 ---
 

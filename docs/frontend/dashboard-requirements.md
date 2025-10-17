@@ -355,7 +355,7 @@ LIMIT 10
 
 ## 📚 Связанные документы
 
-- [API Contract](../api/stats-api-contract.md) - спецификация REST API
+- [API Contract](../backend/api/stats-api-contract.md) - спецификация REST API
 - [Vision](../vision.md) - общее техническое видение проекта
 - [Roadmap](../roadmap.md) - план развития проекта
 

@@ -56,12 +56,12 @@
 - 🚀 **[Production развертывание](#-production-развертывание)** - deployment guide
 
 ### 📖 Для разработчиков
-- 🔧 **[API Reference](docs/api/README.md)** - архитектура и API всех компонентов
-  - [Bot API](docs/api/bot.md) - главный класс бота
-  - [Storage API](docs/api/storage.md) - работа с БД и историей
-  - [LLM Client API](docs/api/llm_client.md) - интеграция с LLM
-  - [Database API](docs/api/database.md) - управление PostgreSQL
-  - [Handlers API](docs/api/handlers.md) - обработчики команд и сообщений
+- 🔧 **[API Reference](docs/backend/bot/api/README.md)** - архитектура и API всех компонентов
+  - [Bot API](docs/backend/bot/api/bot.md) - главный класс бота
+  - [Storage API](docs/backend/bot/api/storage.md) - работа с БД и историей
+  - [LLM Client API](docs/backend/bot/api/llm_client.md) - интеграция с LLM
+  - [Database API](docs/backend/bot/api/database.md) - управление PostgreSQL
+  - [Handlers API](docs/backend/bot/api/handlers.md) - обработчики команд и сообщений
 - 📋 **[vision.md](docs/vision.md)** - техническое видение проекта
 - 🗺️ **[roadmap.md](docs/roadmap.md)** - план развития (3 спринта завершено)
 - 🤝 **[CONTRIBUTING.md](CONTRIBUTING.md)** - руководство по контрибуции
@@ -209,7 +209,7 @@ python -m src.main --env-file .env.development
 - **`messages`** - история сообщений (с soft delete стратегией)
 - **`user_settings`** - персональные настройки (лимиты, кастомные промпты)
 
-📖 Подробности: [Database API](docs/api/database.md)
+📖 Подробности: [Database API](docs/backend/bot/api/database.md)
 
 ### Управление миграциями
 
@@ -445,7 +445,7 @@ tests/
 - GitHub Actions - CI/CD
 - Yandex Container Registry - хранение образов
 
-📖 Полная документация: [API Reference](docs/api/README.md)
+📖 Полная документация: [API Reference](docs/backend/bot/api/README.md)
 
 ### Структура проекта
 

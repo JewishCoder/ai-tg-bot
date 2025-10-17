@@ -503,9 +503,9 @@ api:
 ## 📚 Related Documents
 
 - [API Contract](stats-api-contract.md) - REST API specification
-- [Dashboard Requirements](../frontend/dashboard-requirements.md) - UI requirements
+- [Dashboard Requirements](../../frontend/dashboard-requirements.md) - UI requirements
 - [Mock Collector](mock-collector.md) - Mock implementation details
-- [Roadmap](../roadmap.md) - Project roadmap
+- [Roadmap](../../roadmap.md) - Project roadmap
 
 ---
 
