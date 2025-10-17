@@ -2,6 +2,7 @@
 
 import { useState } from "react"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
+import { PeriodFilter } from "@/components/dashboard/PeriodFilter"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Header } from "@/components/layout/Header"
 import { Period } from "@/types/api"
@@ -22,6 +23,7 @@ export default function DashboardPage() {
                 Статистика диалогов Telegram бота
               </p>
             </div>
+            <PeriodFilter value={period} onChange={setPeriod} />
           </div>
           {/* Здесь будут компоненты дашборда */}
           <div className="text-muted-foreground">
