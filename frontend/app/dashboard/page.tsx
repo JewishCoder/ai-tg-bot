@@ -7,6 +7,7 @@ import { SummarySection } from "@/components/dashboard/SummarySection"
 import { ActivityChart } from "@/components/dashboard/ActivityChart"
 import { RecentDialogsTable } from "@/components/dashboard/RecentDialogsTable"
 import { TopUsersTable } from "@/components/dashboard/TopUsersTable"
+import { ErrorState } from "@/components/dashboard/ErrorState"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Header } from "@/components/layout/Header"
 import { Period } from "@/types/api"
@@ -14,7 +15,21 @@ import { useStats } from "@/lib/hooks/useStats"
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('week')
-  const { data: stats, isLoading } = useStats(period)
+  const { data: stats, isLoading, error, refetch } = useStats(period)
+
+  if (error) {
+    return (
+      <SidebarProvider defaultOpen={false}>
+        <AppSidebar />
+        <SidebarInset>
+          <Header />
+          <div className="flex-1 p-8">
+            <ErrorState error={error as Error} onRetry={() => refetch()} />
+          </div>
+        </SidebarInset>
+      </SidebarProvider>
+    )
+  }
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -31,15 +46,15 @@ export default function DashboardPage() {
             </div>
             <PeriodFilter value={period} onChange={setPeriod} />
           </div>
-
+          
           <SummarySection data={stats?.summary} isLoading={isLoading} />
-
-          <ActivityChart
-            data={stats?.activity_timeline || []}
+          
+          <ActivityChart 
+            data={stats?.activity_timeline || []} 
             period={period}
             isLoading={isLoading}
           />
-
+          
           <div className="grid gap-4 md:grid-cols-1 lg:grid-cols-2">
             <RecentDialogsTable 
               data={stats?.recent_dialogs || []} 
