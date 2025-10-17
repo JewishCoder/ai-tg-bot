@@ -3,12 +3,15 @@
 import { useState } from "react"
 import { AppSidebar } from "@/components/dashboard/app-sidebar"
 import { PeriodFilter } from "@/components/dashboard/PeriodFilter"
+import { SummarySection } from "@/components/dashboard/SummarySection"
 import { SidebarInset, SidebarProvider } from "@/components/ui/sidebar"
 import { Header } from "@/components/layout/Header"
 import { Period } from "@/types/api"
+import { useStats } from "@/lib/hooks/useStats"
 
 export default function DashboardPage() {
   const [period, setPeriod] = useState<Period>('week')
+  const { data: stats, isLoading } = useStats(period)
 
   return (
     <SidebarProvider defaultOpen={false}>
@@ -25,10 +28,10 @@ export default function DashboardPage() {
             </div>
             <PeriodFilter value={period} onChange={setPeriod} />
           </div>
-          {/* Здесь будут компоненты дашборда */}
-          <div className="text-muted-foreground">
-            Текущий период: {period}
-          </div>
+          
+          <SummarySection data={stats?.summary} isLoading={isLoading} />
+          
+          {/* Здесь будут остальные компоненты дашборда */}
         </div>
       </SidebarInset>
     </SidebarProvider>
