@@ -370,8 +370,8 @@
       ├── integration/        # Integration tests
       └── setup.ts            # Test setup
   ```
-- [ ] Создать README файлы в ключевых директориях с описанием назначения
-- [ ] Создать `.placeholder` файлы в пустых директориях для Git tracking
+- [x] Создать README файлы в ключевых директориях с описанием назначения
+- [x] Создать `.placeholder` файлы в пустых директориях для Git tracking
 
 **Файлы для создания**:
 - Создать все директории согласно структуре
@@ -394,7 +394,7 @@
 **Цель**: Создать конфигурационные файлы для управления настройками приложения.
 
 **Что нужно сделать**:
-- [ ] Создать `config/site.ts` с метаданными сайта:
+- [x] Создать `config/site.ts` с метаданными сайта:
   ```typescript
   export const siteConfig = {
     name: "AI Telegram Bot Dashboard",
@@ -407,7 +407,7 @@
   
   export type SiteConfig = typeof siteConfig
   ```
-- [ ] Создать `config/api.ts` с API конфигурацией:
+- [x] Создать `config/api.ts` с API конфигурацией:
   ```typescript
   export const apiConfig = {
     baseUrl: process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000",
@@ -420,7 +420,7 @@
   
   export type ApiConfig = typeof apiConfig
   ```
-- [ ] Создать `.env.local.example`:
+- [x] Создать `.env.local.example`:
   ```env
   # App Configuration
   NEXT_PUBLIC_APP_URL=http://localhost:3000
@@ -431,8 +431,8 @@
   # Analytics (опционально)
   # NEXT_PUBLIC_GA_ID=
   ```
-- [ ] Создать `.env.local` и добавить в `.gitignore`
-- [ ] Обновить `next.config.js` с дополнительными настройками:
+- [x] Создать `.env.local` и добавить в `.gitignore`
+- [x] Обновить `next.config.js` с дополнительными настройками:
   ```javascript
   /** @type {import('next').NextConfig} */
   const nextConfig = {
@@ -473,7 +473,7 @@
 **Цель**: Создать базовые layout компоненты для структуры приложения.
 
 **Что нужно сделать**:
-- [ ] Создать `components/layout/Header.tsx`:
+- [x] Создать `components/layout/Header.tsx`:
   ```typescript
   import Link from "next/link"
   import { siteConfig } from "@/config/site"
@@ -493,7 +493,7 @@
     )
   }
   ```
-- [ ] Создать `components/layout/Footer.tsx`:
+- [x] Создать `components/layout/Footer.tsx`:
   ```typescript
   export function Footer() {
     return (
@@ -507,7 +507,7 @@
     )
   }
   ```
-- [ ] Создать `components/layout/Sidebar.tsx` (опционально, для навигации):
+- [x] Создать `components/layout/Sidebar.tsx` (опционально, для навигации):
   ```typescript
   export function Sidebar() {
     return (
@@ -517,7 +517,7 @@
     )
   }
   ```
-- [ ] Обновить `app/layout.tsx` для использования layout компонентов:
+- [x] Обновить `app/layout.tsx` для использования layout компонентов:
   ```typescript
   import { Header } from "@/components/layout/Header"
   import { Footer } from "@/components/layout/Footer"
@@ -541,7 +541,7 @@
     )
   }
   ```
-- [ ] Добавить type definitions для layout props
+- [x] Добавить type definitions для layout props
 
 **Файлы для создания/изменения**:
 - `frontend/components/layout/Header.tsx` (новый)
@@ -567,14 +567,14 @@
 **Цель**: Настроить ESLint для проверки качества кода и выявления ошибок.
 
 **Что нужно сделать**:
-- [ ] Установить дополнительные плагины ESLint:
+- [x] Установить дополнительные плагины ESLint:
   ```bash
   pnpm add -D @typescript-eslint/parser @typescript-eslint/eslint-plugin
   pnpm add -D eslint-plugin-react eslint-plugin-react-hooks
   pnpm add -D eslint-plugin-jsx-a11y
   pnpm add -D eslint-config-prettier
   ```
-- [ ] Создать/обновить `.eslintrc.json`:
+- [x] Создать/обновить `.eslintrc.json`:
   ```json
   {
     "extends": [
@@ -609,7 +609,7 @@
     }
   }
   ```
-- [ ] Создать `.eslintignore`:
+- [x] Создать `.eslintignore`:
   ```
   node_modules/
   .next/
@@ -641,11 +641,11 @@
 **Цель**: Настроить Prettier для автоматического форматирования кода.
 
 **Что нужно сделать**:
-- [ ] Установить Prettier и плагины:
+- [x] Установить Prettier и плагины:
   ```bash
   pnpm add -D prettier prettier-plugin-tailwindcss
   ```
-- [ ] Создать `.prettierrc`:
+- [x] Создать `.prettierrc`:
   ```json
   {
     "semi": false,
@@ -658,7 +658,7 @@
     "plugins": ["prettier-plugin-tailwindcss"]
   }
   ```
-- [ ] Создать `.prettierignore`:
+- [x] Создать `.prettierignore`:
   ```
   node_modules/
   .next/
@@ -670,7 +670,7 @@
   package-lock.json
   *.md
   ```
-- [ ] Добавить скрипты в `package.json`:
+- [x] Добавить скрипты в `package.json`:
   ```json
   {
     "scripts": {
@@ -701,22 +701,22 @@
 **Цель**: Автоматизировать проверки качества кода перед коммитом.
 
 **Что нужно сделать**:
-- [ ] Установить Husky и lint-staged:
+- [x] Установить Husky и lint-staged:
   ```bash
   pnpm add -D husky lint-staged
   ```
-- [ ] Инициализировать Husky:
+- [x] Инициализировать Husky:
   ```bash
   pnpm exec husky init
   ```
-- [ ] Настроить `.husky/pre-commit`:
+- [x] Настроить `.husky/pre-commit`:
   ```bash
   #!/usr/bin/env sh
   . "$(dirname -- "$0")/_/husky.sh"
   
   cd frontend && pnpm lint-staged
   ```
-- [ ] Добавить конфигурацию lint-staged в `package.json`:
+- [x] Добавить конфигурацию lint-staged в `package.json`:
   ```json
   {
     "lint-staged": {
@@ -730,7 +730,7 @@
     }
   }
   ```
-- [ ] Добавить скрипт prepare в `package.json`:
+- [x] Добавить скрипт prepare в `package.json`:
   ```json
   {
     "scripts": {
@@ -738,7 +738,7 @@
     }
   }
   ```
-- [ ] Протестировать pre-commit hook (сделать изменение и закоммитить)
+- [x] Протестировать pre-commit hook (сделать изменение и закоммитить)
 
 **Файлы для создания/изменения**:
 - `frontend/.husky/pre-commit` (новый)
@@ -762,13 +762,13 @@
 **Цель**: Настроить современный testing фреймворк для unit и integration тестов.
 
 **Что нужно сделать**:
-- [ ] Установить Vitest и Testing Library:
+- [x] Установить Vitest и Testing Library:
   ```bash
   pnpm add -D vitest @vitejs/plugin-react
   pnpm add -D @testing-library/react @testing-library/jest-dom @testing-library/user-event
   pnpm add -D jsdom
   ```
-- [ ] Создать `vitest.config.ts`:
+- [x] Создать `vitest.config.ts`:
   ```typescript
   import { defineConfig } from 'vitest/config'
   import react from '@vitejs/plugin-react'
@@ -798,7 +798,7 @@
     },
   })
   ```
-- [ ] Создать `tests/setup.ts`:
+- [x] Создать `tests/setup.ts`:
   ```typescript
   import '@testing-library/jest-dom'
   import { cleanup } from '@testing-library/react'
@@ -808,7 +808,7 @@
     cleanup()
   })
   ```
-- [ ] Добавить тестовые скрипты в `package.json`:
+- [x] Добавить тестовые скрипты в `package.json`:
   ```json
   {
     "scripts": {
@@ -818,7 +818,7 @@
     }
   }
   ```
-- [ ] Создать примерный тест `tests/unit/example.test.tsx`:
+- [x] Создать примерный тест `tests/unit/example.test.tsx`:
   ```typescript
   import { render, screen } from '@testing-library/react'
   import { describe, it, expect } from 'vitest'
@@ -830,7 +830,7 @@
     })
   })
   ```
-- [ ] Запустить тесты и проверить работоспособность
+- [x] Запустить тесты и проверить работоспособность
 
 **Файлы для создания**:
 - `frontend/vitest.config.ts` (новый)
@@ -854,12 +854,12 @@
 **Цель**: Создать типизированный API client для взаимодействия с backend.
 
 **Что нужно сделать**:
-- [ ] Установить зависимости:
+- [x] Установить зависимости:
   ```bash
   pnpm add @tanstack/react-query
   pnpm add axios
   ```
-- [ ] Создать типы на основе API контракта в `types/api.ts`:
+- [x] Создать типы на основе API контракта в `types/api.ts`:
   ```typescript
   // Импортировать или определить типы из backend API контракта
   export interface Summary {
@@ -899,7 +899,7 @@
   
   export type Period = 'day' | 'week' | 'month'
   ```
-- [ ] Создать API client в `lib/api.ts`:
+- [x] Создать API client в `lib/api.ts`:
   ```typescript
   import axios, { AxiosInstance } from 'axios'
   import { apiConfig } from '@/config/api'
@@ -936,7 +936,7 @@
   
   export const apiClient = new ApiClient()
   ```
-- [ ] Создать React Query hooks в `lib/hooks/useStats.ts`:
+- [x] Создать React Query hooks в `lib/hooks/useStats.ts`:
   ```typescript
   import { useQuery } from '@tanstack/react-query'
   import { apiClient } from '@/lib/api'
@@ -951,7 +951,7 @@
     })
   }
   ```
-- [ ] Настроить React Query Provider в `app/layout.tsx`:
+- [x] Настроить React Query Provider в `app/layout.tsx`:
   ```typescript
   'use client'
   
@@ -968,7 +968,7 @@
     )
   }
   ```
-- [ ] Написать unit-тесты для API client
+- [x] Написать unit-тесты для API client
 
 **Файлы для создания**:
 - `frontend/types/api.ts` (новый)
@@ -996,7 +996,7 @@
 **Цель**: Автоматизировать frontend команды через корневой Makefile.
 
 **Что нужно сделать**:
-- [ ] Добавить frontend команды в корневой `Makefile`:
+- [x] Добавить frontend команды в корневой `Makefile`:
   ```makefile
   # Frontend команды
   .PHONY: frontend-install
@@ -1054,7 +1054,7 @@
   frontend-check: frontend-lint frontend-type-check frontend-test
       @echo "✅ Все проверки frontend пройдены!"
   ```
-- [ ] Добавить `type-check` скрипт в `frontend/package.json`:
+- [x] Добавить `type-check` скрипт в `frontend/package.json`:
   ```json
   {
     "scripts": {
@@ -1062,7 +1062,7 @@
     }
   }
   ```
-- [ ] Обновить корневой `README.md` с frontend командами
+- [x] Обновить корневой `README.md` с frontend командами
 
 **Файлы для изменения**:
 - `Makefile` - добавить frontend команды
@@ -1085,7 +1085,7 @@
 **Цель**: Создать подробную документацию для frontend разработки.
 
 **Что нужно сделать**:
-- [ ] Обновить `frontend/README.md` с полной инструкцией:
+- [x] Обновить `frontend/README.md` с полной инструкцией:
   - Технологический стек
   - Требования (Node.js, pnpm)
   - Установка и запуск
@@ -1096,7 +1096,7 @@
   - Тестирование
   - Сборка для production
   - Troubleshooting
-- [ ] Создать `docs/guides/frontend-development.md`:
+- [x] Создать `docs/guides/frontend-development.md`:
   - Best practices для React
   - Использование shadcn/ui компонентов
   - Работа с Tailwind CSS
@@ -1105,8 +1105,8 @@
   - API integration patterns
   - Performance optimization
   - Accessibility guidelines
-- [ ] Добавить примеры кода для типичных задач
-- [ ] Обновить `docs/roadmap.md` - отметить прогресс S4
+- [x] Добавить примеры кода для типичных задач
+- [x] Обновить `docs/roadmap.md` - отметить прогресс S4
 
 **Файлы для создания/обновления**:
 - `frontend/README.md` - обновить
@@ -1129,7 +1129,7 @@
 **Цель**: Создать Docker образ для frontend приложения (для production).
 
 **Что нужно сделать**:
-- [ ] Создать `frontend/Dockerfile`:
+- [x] Создать `frontend/Dockerfile`:
   ```dockerfile
   # Stage 1: Dependencies
   FROM node:20-alpine AS deps
@@ -1172,7 +1172,7 @@
   
   CMD ["node", "server.js"]
   ```
-- [ ] Создать `frontend/.dockerignore`:
+- [x] Создать `frontend/.dockerignore`:
   ```
   node_modules
   .next
@@ -1183,14 +1183,14 @@
   .vscode
   .idea
   ```
-- [ ] Обновить `next.config.js` для standalone output:
+- [x] Обновить `next.config.js` для standalone output:
   ```javascript
   const nextConfig = {
     output: 'standalone',
     // ... остальные настройки
   }
   ```
-- [ ] Обновить `docker-compose.yml` в корне проекта:
+- [x] Обновить `docker-compose.yml` в корне проекта:
   ```yaml
   services:
     # ... existing services
@@ -1208,7 +1208,7 @@
       networks:
         - app-network
   ```
-- [ ] Добавить Makefile команды для Docker:
+- [x] Добавить Makefile команды для Docker:
   ```makefile
   .PHONY: frontend-docker-build
   frontend-docker-build:
@@ -1241,55 +1241,55 @@
 После завершения всех задач необходимо провести:
 
 1. **Проверка установки**:
-   - [ ] `make frontend-install` - зависимости установлены
-   - [ ] Нет ошибок установки
-   - [ ] `node_modules` создана
+   - [x] `make frontend-install` - зависимости установлены
+   - [x] Нет ошибок установки
+   - [x] `node_modules` создана
 
 2. **Dev server**:
-   - [ ] `make frontend-dev` - сервер запускается
-   - [ ] Открыть http://localhost:3000
-   - [ ] Страница отображается корректно
-   - [ ] Hot reload работает (изменить файл и проверить)
+   - [x] `make frontend-dev` - сервер запускается
+   - [x] Открыть http://localhost:3000
+   - [x] Страница отображается корректно
+   - [x] Hot reload работает (изменить файл и проверить)
 
 3. **Качество кода**:
-   - [ ] `make frontend-lint` - 0 критичных ошибок
-   - [ ] `make frontend-format` - код форматируется
-   - [ ] `make frontend-type-check` - нет ошибок TypeScript
+   - [x] `make frontend-lint` - 0 критичных ошибок
+   - [x] `make frontend-format` - код форматируется
+   - [x] `make frontend-type-check` - нет ошибок TypeScript
 
 4. **Тестирование**:
-   - [ ] `make frontend-test` - тесты проходят
-   - [ ] `make frontend-test-cov` - coverage >= 80%
-   - [ ] Интеграционные тесты работают
+   - [x] `make frontend-test` - тесты проходят
+   - [x] `make frontend-test-cov` - coverage >= 80%
+   - [x] Интеграционные тесты работают
 
 5. **Сборка production**:
-   - [ ] `make frontend-build` - успешная сборка
-   - [ ] `make frontend-start` - production сервер запускается
-   - [ ] Проверить оптимизацию (bundle size)
+   - [x] `make frontend-build` - успешная сборка
+   - [x] `make frontend-start` - production сервер запускается
+   - [x] Проверить оптимизацию (bundle size)
 
 6. **shadcn/ui компоненты**:
-   - [ ] Создать тестовую страницу с UI компонентами
-   - [ ] Проверить работу Button, Card, Table
-   - [ ] Проверить темную/светлую тему
+   - [x] Создать тестовую страницу с UI компонентами
+   - [x] Проверить работу Button, Card, Table
+   - [x] Проверить темную/светлую тему
 
 7. **API integration**:
-   - [ ] Запустить backend API (`make api-dev`)
-   - [ ] Проверить запрос к `/stats?period=day`
-   - [ ] Убедиться что React Query кеширует данные
+   - [x] Запустить backend API (`make api-dev`)
+   - [x] Проверить запрос к `/stats?period=day`
+   - [x] Убедиться что React Query кеширует данные
 
 8. **Pre-commit hooks**:
-   - [ ] Сделать изменение в файле
-   - [ ] Попытаться закоммитить
-   - [ ] Проверить что lint и format запустились автоматически
+   - [x] Сделать изменение в файле
+   - [x] Попытаться закоммитить
+   - [x] Проверить что lint и format запустились автоматически
 
 9. **Docker** (опционально):
-   - [ ] `make frontend-docker-build` - образ собирается
-   - [ ] `make frontend-docker-run` - контейнер запускается
-   - [ ] docker-compose up - весь стек работает
+   - [x] `make frontend-docker-build` - образ собирается
+   - [x] `make frontend-docker-run` - контейнер запускается
+   - [x] docker-compose up - весь стек работает
 
 10. **Документация**:
-    - [ ] README актуален
-    - [ ] Все инструкции работают
-    - [ ] Примеры кода корректны
+    - [x] README актуален
+    - [x] Все инструкции работают
+    - [x] Примеры кода корректны
 
 ---
 
@@ -1417,22 +1417,22 @@ frontend/
 
 ## ✅ Чеклист завершения спринта
 
-- [ ] Все задачи из Блока 1 (Концепция и документация) завершены
-- [ ] Все задачи из Блока 2 (Инициализация проекта) завершены
-- [ ] Все задачи из Блока 3 (Структура проекта) завершены
-- [ ] Все задачи из Блока 4 (Инструменты разработки) завершены
-- [ ] Все задачи из Блока 5 (Тестирование и CI/CD) завершены
-- [ ] Все задачи из Блока 6 (Автоматизация и документация) завершены
-- [ ] Next.js проект работает (`make frontend-dev`)
-- [ ] shadcn/ui интегрирован (10+ компонентов установлены)
-- [ ] API client типизирован и работает
-- [ ] Coverage >= 80% для новых компонентов
-- [ ] `make frontend-check` проходит без ошибок
-- [ ] Pre-commit hooks работают
-- [ ] Production build успешен (`make frontend-build`)
-- [ ] Документация полная и актуальна
-- [ ] Roadmap обновлен
-- [ ] Docker конфигурация работает (опционально)
+- [x] Все задачи из Блока 1 (Концепция и документация) завершены
+- [x] Все задачи из Блока 2 (Инициализация проекта) завершены
+- [x] Все задачи из Блока 3 (Структура проекта) завершены
+- [x] Все задачи из Блока 4 (Инструменты разработки) завершены
+- [x] Все задачи из Блока 5 (Тестирование и CI/CD) завершены
+- [x] Все задачи из Блока 6 (Автоматизация и документация) завершены
+- [x] Next.js проект работает (`make frontend-dev`)
+- [x] shadcn/ui интегрирован (10+ компонентов установлены)
+- [x] API client типизирован и работает
+- [x] Coverage >= 80% для новых компонентов
+- [x] `make frontend-check` проходит без ошибок
+- [x] Pre-commit hooks работают
+- [x] Production build успешен (`make frontend-build`)
+- [x] Документация полная и актуальна
+- [x] Roadmap обновлен
+- [x] Docker конфигурация работает (опционально)
 
 ---
 
