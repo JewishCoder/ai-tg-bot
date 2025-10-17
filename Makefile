@@ -8,16 +8,19 @@ else
     DETECTED_OS := $(shell uname -s)
 endif
 
+# Путь к директории бота
+BOT_DIR := backend/bot
+
 # Определение команды UV в зависимости от ОС
 ifeq ($(DETECTED_OS),Windows)
     # Windows: используем полный путь к uv.exe через PowerShell
-    UV := powershell -Command "& '$$env:USERPROFILE\.local\bin\uv.exe'"
+    UV := powershell -Command "cd $(BOT_DIR); & '$$env:USERPROFILE\.local\bin\uv.exe'"
     RM := powershell -Command "Remove-Item -Recurse -Force -ErrorAction SilentlyContinue"
     FIND_PYC := powershell -Command "Get-ChildItem -Recurse -Filter '*.pyc' | Remove-Item -Force -ErrorAction SilentlyContinue"
     FIND_PYO := powershell -Command "Get-ChildItem -Recurse -Filter '*.pyo' | Remove-Item -Force -ErrorAction SilentlyContinue"
 else
     # Linux/macOS: используем uv из PATH
-    UV := uv
+    UV := cd $(BOT_DIR) && uv
     RM := rm -rf
     FIND_PYC := find . -type f -name '*.pyc' -delete
     FIND_PYO := find . -type f -name '*.pyo' -delete
@@ -155,7 +158,7 @@ docker-restart: docker-down docker-up
 
 clean:
 	@echo "Cleaning temporary files..."
-	@$(RM) __pycache__ src/__pycache__ tests/__pycache__ .pytest_cache htmlcov .coverage
+	@$(RM) $(BOT_DIR)/__pycache__ $(BOT_DIR)/src/__pycache__ $(BOT_DIR)/tests/__pycache__ $(BOT_DIR)/.pytest_cache $(BOT_DIR)/htmlcov $(BOT_DIR)/.coverage
 	@$(FIND_PYC)
 	@$(FIND_PYO)
 	@echo "Cleaned successfully!"

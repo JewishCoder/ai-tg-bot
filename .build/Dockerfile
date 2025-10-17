@@ -18,8 +18,8 @@ RUN pip install --no-cache-dir uv
 # Set working directory
 WORKDIR /app
 
-# Copy dependency files
-COPY pyproject.toml uv.lock ./
+# Copy dependency files from backend/bot
+COPY backend/bot/pyproject.toml backend/bot/uv.lock ./
 
 # Configure UV to use explicit venv location
 ENV UV_PROJECT_ENVIRONMENT=/app/.venv
@@ -56,21 +56,21 @@ WORKDIR /app
 COPY --from=builder /usr/local/bin/uv /usr/local/bin/uv
 COPY --from=builder /app/.venv /app/.venv
 
-# Copy source code and version file
-COPY --chown=bot:bot src/ ./src/
-COPY --chown=bot:bot README.md VERSION ./
+# Copy source code and version file from backend/bot
+COPY --chown=bot:bot backend/bot/src/ ./src/
+COPY --chown=bot:bot backend/bot/VERSION ./
 
-# Copy Alembic configuration and migrations
-COPY --chown=bot:bot alembic.ini ./
-COPY --chown=bot:bot alembic/ ./alembic/
+# Copy Alembic configuration and migrations from backend/bot
+COPY --chown=bot:bot backend/bot/alembic.ini ./
+COPY --chown=bot:bot backend/bot/alembic/ ./alembic/
 
 # Copy entrypoint script
 COPY .build/entrypoint.sh /usr/local/bin/entrypoint.sh
 RUN chmod +x /usr/local/bin/entrypoint.sh
 
-# Create directories for data and logs with proper permissions
-RUN mkdir -p data logs .cache && \
-    chown -R bot:bot data logs .cache
+# Create directories for logs with proper permissions
+RUN mkdir -p logs .cache && \
+    chown -R bot:bot logs .cache
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1

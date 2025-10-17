@@ -45,9 +45,8 @@ make clean          # Очистка временных файлов
 
 ### docker-compose.yml
 **Volume Mapping:**
-- `./data:/app/data` - история диалогов (персистентна)
 - `./logs:/app/logs` - логи бота
-- `./.env.development:/app/.env.development:ro` - конфигурация (read-only)
+- `./backend/bot/.env.development:/app/.env.development:ro` - конфигурация (read-only)
 
 **Restart Policy:**
 - `unless-stopped` - автоматический перезапуск при сбоях
@@ -69,7 +68,7 @@ make clean          # Очистка временных файлов
 
 - Docker Engine 20.10+
 - Docker Compose v2.0+
-- Файл `.env.development` с настройками
+- Файл `backend/bot/.env.development` с настройками
 
 ## Проверка работы
 
@@ -130,7 +129,7 @@ docker stats ai-tg-bot
 
 Для production окружения:
 1. Создайте `docker-compose.prod.yml`
-2. Используйте `.env.production` вместо `.env.development`
+2. Используйте переменные окружения или секреты вместо `.env.development`
 3. Настройте resource limits в docker-compose
 4. Настройте мониторинг и алерты
 5. Используйте Docker Swarm или Kubernetes для оркестрации
@@ -145,5 +144,5 @@ docker stats ai-tg-bot
 
 **Проблема:** Контейнер постоянно перезапускается
 - **Решение:** Проверьте логи: `docker-compose logs bot`
-- Проверьте наличие и корректность `.env.development`
+- Проверьте наличие и корректность `backend/bot/.env.development`
 

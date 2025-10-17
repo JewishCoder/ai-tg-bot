@@ -101,19 +101,23 @@
 git clone <repository-url>
 cd ai-tg-bot
 
-# Создать файлы конфигурации
-cp .env.example .env                 # Для Docker Compose
-cp .env.example .env.development     # Для приложения внутри контейнера
+# Создать конфигурацию для бота
+cp backend/bot/.env.example backend/bot/.env.development
 
-# Отредактируйте оба файла:
+# Отредактируйте backend/bot/.env.development:
 # - TELEGRAM_TOKEN (получить у @BotFather)
 # - OPENROUTER_API_KEY (получить на openrouter.ai)
 # - DB_PASSWORD (установите надежный пароль для PostgreSQL)
+
+# Создать .env для Docker Compose (опционально, если нужно переопределить параметры БД)
+# echo "DB_USER=botuser" > .env
+# echo "DB_PASSWORD=your_secure_password" >> .env
+# echo "DB_NAME=ai_tg_bot" >> .env
 ```
 
 **Важно:** 
-- `.env` используется Docker Compose для подстановки переменных в `docker-compose.yml`
-- `.env.development` монтируется внутрь контейнера и используется приложением
+- `backend/bot/.env.development` - основная конфигурация бота (монтируется в контейнер)
+- `.env` (опционально) - переменные для Docker Compose (например, параметры PostgreSQL)
 
 **2. Собрать и запустить:**
 
@@ -145,9 +149,9 @@ docker-compose down
 ```bash
 git clone <repository-url>
 cd ai-tg-bot
-cp .env.example .env.development
+cp backend/bot/.env.example backend/bot/.env.development
 
-# Отредактируйте .env.development:
+# Отредактируйте backend/bot/.env.development:
 # - TELEGRAM_TOKEN и OPENROUTER_API_KEY
 # - DB_HOST=localhost (для локального запуска вместо 'postgres')
 ```
@@ -170,13 +174,20 @@ make db-migrate
 
 **4. Запустить бота:**
 
-**Через UV (рекомендуется):**
+**Через Makefile (рекомендуется):**
 ```bash
+make run
+```
+
+**Через UV напрямую:**
+```bash
+cd backend/bot
 uv run python -m src.main --env-file .env.development
 ```
 
 **Через виртуальное окружение:**
 ```bash
+cd backend/bot
 # Активировать окружение
 source .venv/bin/activate  # Linux/Mac
 # или
@@ -219,7 +230,7 @@ make db-current
 ### Конфигурация
 
 ```bash
-# В .env.development или .env
+# В backend/bot/.env.development (или .env для Docker Compose)
 DB_HOST=postgres         # Для Docker: postgres; для локального: localhost
 DB_PORT=5432            # Порт БД
 DB_NAME=ai_tg_bot       # Имя базы данных
@@ -260,7 +271,7 @@ DB_ECHO=False           # SQLAlchemy echo (True для отладки SQL)
 **Настройка:**
 
 ```bash
-# В .env.development (или .env.production)
+# В backend/bot/.env.development (или .env для production)
 
 # Основная модель (платная, мощная)
 OPENROUTER_MODEL=anthropic/claude-3.5-sonnet

@@ -19,11 +19,10 @@ env/
 # Environment files (will be mounted as volumes)
 .env
 .env.*
-!.env.example
+!backend/bot/.env.example
 
-# Data files (will be mounted as volumes)
-data/*.json
-!data/.gitkeep
+# Root .env for Docker Compose (not needed in image)
+/.env
 
 # Log files (will be mounted as volumes)
 logs/*.log
@@ -47,10 +46,12 @@ docs/
 *.md
 !README.md
 
-# Tests
-tests/
-pytest.ini
-.pytest_cache/
+# Tests (backend/bot specific)
+backend/bot/tests/
+backend/bot/pytest.ini
+backend/bot/.pytest_cache/
+backend/bot/htmlcov/
+backend/bot/.coverage
 
 # OS files
 .DS_Store
@@ -65,4 +66,10 @@ docker-compose*.yml
 # CI/CD
 .github/
 .gitlab-ci.yml
+
+# Frontend (not needed in backend image)
+frontend/
+
+# Backend API (not needed in bot image)
+backend/api/
 

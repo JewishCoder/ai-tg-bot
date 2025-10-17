@@ -27,10 +27,10 @@ RUN uv sync --frozen --no-dev
 
 # Copy source code and version file
 COPY src/ ./src/
-COPY README.md VERSION ./
+COPY VERSION ./
 
-# Create directories for data and logs
-RUN mkdir -p data logs
+# Create directory for logs
+RUN mkdir -p logs
 
 # Set environment variables
 ENV PYTHONUNBUFFERED=1
