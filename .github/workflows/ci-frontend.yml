@@ -89,8 +89,8 @@ jobs:
       - name: Build check
         working-directory: frontend
         env:
-          NEXT_PUBLIC_API_URL: http://localhost:8081
-          NEXT_PUBLIC_APP_URL: http://localhost:3000
+          NEXT_PUBLIC_API_URL: ${{ secrets.NEXT_PUBLIC_API_URL || 'http://localhost:8081' }}
+          NEXT_PUBLIC_APP_URL: ${{ secrets.NEXT_PUBLIC_APP_URL || 'http://localhost:3000' }}
         run: npm run build
 
   frontend-docker:
@@ -140,8 +140,8 @@ jobs:
           cache-from: type=gha
           cache-to: type=gha,mode=max
           build-args: |
-            NEXT_PUBLIC_API_URL=http://localhost:8081
-            NEXT_PUBLIC_APP_URL=http://localhost:3000
+            NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
+            NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
 
       - name: Image info
         run: |
