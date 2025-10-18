@@ -8,10 +8,9 @@ on:
   workflow_dispatch:
 
 # Автоматическая отмена устаревших сборок при новых коммитах
-# Временно отключено для тестирования CI
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   # ===== Detect Changes =====
@@ -54,8 +53,7 @@ jobs:
   bot:
     name: Bot CI
     needs: changes
-    # Временно отключено для тестирования CI
-    # if: needs.changes.outputs.bot == 'true'
+    if: needs.changes.outputs.bot == 'true'
     uses: ./.github/workflows/ci-bot.yml
     secrets: inherit
 
@@ -63,8 +61,7 @@ jobs:
   api:
     name: API CI
     needs: changes
-    # Временно отключено для тестирования CI
-    # if: needs.changes.outputs.api == 'true'
+    if: needs.changes.outputs.api == 'true'
     uses: ./.github/workflows/ci-api.yml
     secrets: inherit
 
@@ -72,8 +69,7 @@ jobs:
   frontend:
     name: Frontend CI
     needs: changes
-    # Временно отключено для тестирования CI
-    # if: needs.changes.outputs.frontend == 'true'
+    if: needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/ci-frontend.yml
     secrets: inherit
 
@@ -81,8 +77,7 @@ jobs:
   nginx:
     name: Nginx CI
     needs: changes
-    # Временно отключено для тестирования CI
-    # if: needs.changes.outputs.nginx == 'true'
+    if: needs.changes.outputs.nginx == 'true'
     uses: ./.github/workflows/ci-nginx.yml
     secrets: inherit
 
@@ -97,49 +92,63 @@ jobs:
         run: |
           echo "## 🎯 CI Results Summary" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          echo "> **⚠️ Testing Mode**: All services are checked (change detection temporarily disabled)" >> $GITHUB_STEP_SUMMARY
-          echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Services Status:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
 
           # Bot
-          BOT_STATUS="${{ needs.bot.result }}"
-          if [ "$BOT_STATUS" == "success" ]; then
-            echo "- 🤖 **Bot**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "$BOT_STATUS" == "skipped" ]; then
-            echo "- 🤖 **Bot**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.changes.outputs.bot }}" == "true" ]; then
+            BOT_STATUS="${{ needs.bot.result }}"
+            if [ "$BOT_STATUS" == "success" ]; then
+              echo "- 🤖 **Bot**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            elif [ "$BOT_STATUS" == "skipped" ]; then
+              echo "- 🤖 **Bot**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- 🤖 **Bot**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "- 🤖 **Bot**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🤖 **Bot**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
           fi
 
           # API
-          API_STATUS="${{ needs.api.result }}"
-          if [ "$API_STATUS" == "success" ]; then
-            echo "- 🔌 **API**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "$API_STATUS" == "skipped" ]; then
-            echo "- 🔌 **API**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.changes.outputs.api }}" == "true" ]; then
+            API_STATUS="${{ needs.api.result }}"
+            if [ "$API_STATUS" == "success" ]; then
+              echo "- 🔌 **API**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            elif [ "$API_STATUS" == "skipped" ]; then
+              echo "- 🔌 **API**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- 🔌 **API**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "- 🔌 **API**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🔌 **API**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Frontend
-          FRONTEND_STATUS="${{ needs.frontend.result }}"
-          if [ "$FRONTEND_STATUS" == "success" ]; then
-            echo "- 🎨 **Frontend**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "$FRONTEND_STATUS" == "skipped" ]; then
-            echo "- 🎨 **Frontend**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.changes.outputs.frontend }}" == "true" ]; then
+            FRONTEND_STATUS="${{ needs.frontend.result }}"
+            if [ "$FRONTEND_STATUS" == "success" ]; then
+              echo "- 🎨 **Frontend**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            elif [ "$FRONTEND_STATUS" == "skipped" ]; then
+              echo "- 🎨 **Frontend**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- 🎨 **Frontend**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "- 🎨 **Frontend**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🎨 **Frontend**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
           fi
 
           # Nginx
-          NGINX_STATUS="${{ needs.nginx.result }}"
-          if [ "$NGINX_STATUS" == "success" ]; then
-            echo "- 🌐 **Nginx**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
-          elif [ "$NGINX_STATUS" == "skipped" ]; then
-            echo "- 🌐 **Nginx**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+          if [ "${{ needs.changes.outputs.nginx }}" == "true" ]; then
+            NGINX_STATUS="${{ needs.nginx.result }}"
+            if [ "$NGINX_STATUS" == "success" ]; then
+              echo "- 🌐 **Nginx**: ✅ Passed" >> $GITHUB_STEP_SUMMARY
+            elif [ "$NGINX_STATUS" == "skipped" ]; then
+              echo "- 🌐 **Nginx**: ⏭️ Skipped" >> $GITHUB_STEP_SUMMARY
+            else
+              echo "- 🌐 **Nginx**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            fi
           else
-            echo "- 🌐 **Nginx**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
+            echo "- 🌐 **Nginx**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
           fi
 
           echo "" >> $GITHUB_STEP_SUMMARY

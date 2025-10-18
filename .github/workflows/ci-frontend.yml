@@ -1,25 +1,13 @@
 name: CI - Frontend
 
 on:
-  # Временно отключено для тестирования unified CI
-  # push:
-  #   branches: [main, develop]
-  #   paths:
-  #     - "frontend/**"
-  #     - ".github/workflows/ci-frontend.yml"
-  # pull_request:
-  #   branches: [main, develop]
-  #   paths:
-  #     - "frontend/**"
-  #     - ".github/workflows/ci-frontend.yml"
   workflow_dispatch:
   workflow_call: # Позволяет вызывать этот workflow из других workflows
 
 # Автоматическая отмена устаревших сборок при новых коммитах
-# Временно отключено для тестирования CI
-# concurrency:
-#   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
-#   cancel-in-progress: true
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
+  cancel-in-progress: true
 
 env:
   REGISTRY: cr.yandex
@@ -62,32 +50,7 @@ jobs:
 
       - name: Run type checker
         working-directory: frontend
-        run: |
-          echo "📝 Current directory:"
-          pwd
-          echo ""
-          echo "📂 Directory structure:"
-          ls -la
-          echo ""
-          echo "📂 Checking lib/ folder:"
-          if [ -d "lib" ]; then
-            ls -la lib/
-            if [ -d "lib/hooks" ]; then
-              echo "✅ lib/hooks/ exists"
-            else
-              echo "❌ lib/hooks/ not found"
-            fi
-            if [ -d "lib/utils" ]; then
-              echo "✅ lib/utils/ exists"
-            else
-              echo "❌ lib/utils/ not found"
-            fi
-          else
-            echo "❌ lib/ folder not found"
-          fi
-          echo ""
-          echo "🔍 Running type check..."
-          npm run type-check
+        run: npm run type-check
 
       - name: Run tests with coverage
         working-directory: frontend
