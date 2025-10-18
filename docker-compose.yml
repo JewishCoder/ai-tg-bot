@@ -72,7 +72,7 @@ services:
     #       cpus: '0.25'
     #       memory: 128M
 
-  api:
+  aitgapi:
     # Development mode (local build)
     build:
       context: ./backend/api
@@ -119,7 +119,7 @@ services:
         max-size: "10m"
         max-file: "3"
 
-  frontend:
+  aitgfront:
     # Development mode (local build)
     build:
       context: ./frontend
@@ -134,7 +134,7 @@ services:
       - NEXT_PUBLIC_API_URL=http://localhost:8081
       - NODE_ENV=production
     depends_on:
-      - api
+      - aitgapi
     restart: unless-stopped
     logging:
       driver: "json-file"
@@ -156,8 +156,8 @@ services:
     ports:
       - "8081:80"
     depends_on:
-      - api
-      - frontend
+      - aitgapi
+      - aitgfront
     restart: unless-stopped
     healthcheck:
       test:
