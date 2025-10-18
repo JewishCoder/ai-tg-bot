@@ -472,6 +472,23 @@ OPENROUTER_API_KEY=your-api-key
 
 ## Troubleshooting
 
+### Проблема: Deadlock в Concurrency Groups
+
+**Симптомы**: 
+```
+Canceling since a deadlock was detected for concurrency group
+```
+
+**Причина**: Конфликт concurrency groups между unified CI и individual workflows.
+
+**Решение**: Добавлен `github.run_id` к concurrency groups в individual workflows:
+```yaml
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
+```
+
+Это делает каждый запуск уникальным и предотвращает deadlock между вызванными и независимо запущенными workflows.
+
 ### Проблема: GitHub Actions не запускаются
 
 **Причина**: Path filters не совпадают с измененными файлами.
