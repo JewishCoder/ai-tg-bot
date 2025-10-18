@@ -53,9 +53,7 @@ def mock_api_user_model():
 def mock_config():
     """Mock config with test admin token."""
     with patch("src.routers.auth.config") as mock_cfg:
-        mock_secret = MagicMock()
-        mock_secret.get_secret_value.return_value = "test_admin_token_123"
-        mock_cfg.ADMIN_REGISTRATION_TOKEN = mock_secret
+        mock_cfg.ADMIN_REGISTRATION_TOKEN = "test_admin_token_123"
         yield mock_cfg
 
 

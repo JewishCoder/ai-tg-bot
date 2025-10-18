@@ -67,7 +67,7 @@ async def register_user(request_data: RegisterRequest, request: Request) -> Regi
         HTTPException: При невалидном admin token или существующем username
     """
     # Verify admin token
-    if request_data.admin_token != config.ADMIN_REGISTRATION_TOKEN.get_secret_value():
+    if request_data.admin_token != config.ADMIN_REGISTRATION_TOKEN:
         logger.warning(
             f"Failed registration attempt with invalid admin token for user: {request_data.username}"
         )

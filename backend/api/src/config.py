@@ -2,7 +2,7 @@
 
 import logging
 
-from pydantic import Field, SecretStr, field_validator
+from pydantic import Field, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 logger = logging.getLogger(__name__)
@@ -50,8 +50,8 @@ class Config(BaseSettings):
     LOG_LEVEL: str = "INFO"
 
     # Auth settings
-    ADMIN_REGISTRATION_TOKEN: SecretStr = Field(
-        default=SecretStr("change-me-in-production"),
+    ADMIN_REGISTRATION_TOKEN: str = Field(
+        default="change-me-in-production",
         description="Admin token for user registration",
     )
 
