@@ -77,7 +77,15 @@ services:
       - API_HOST=0.0.0.0
       - API_PORT=8000
       - API_VERSION=v1
-      - STAT_COLLECTOR_TYPE=mock
+      - COLLECTOR_MODE=real
+      - DB_HOST=${DB_HOST:-localhost}
+      - DB_PORT=${DB_PORT:-5432}
+      - DB_NAME=${DB_NAME:-ai_tg_bot}
+      - DB_USER=${DB_USER:-botuser}
+      - DB_PASSWORD=${DB_PASSWORD}
+      - DB_POOL_SIZE=5
+      - DB_MAX_OVERFLOW=10
+      - CACHE_TTL=60
       - LOG_LEVEL=INFO
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1

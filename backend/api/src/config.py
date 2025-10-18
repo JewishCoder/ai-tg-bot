@@ -1,5 +1,6 @@
 """Конфигурация API."""
 
+from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -16,7 +17,20 @@ class Config(BaseSettings):
     API_VERSION: str = "v1"
 
     # StatCollector
-    STAT_COLLECTOR_TYPE: str = "mock"  # mock или real
+    COLLECTOR_MODE: str = Field(default="mock", description="Collector mode: 'mock' or 'real'")
+
+    # Database settings (для collector_mode='real')
+    DB_HOST: str = Field(default="localhost", description="PostgreSQL host")
+    DB_PORT: int = Field(default=5432, description="PostgreSQL port")
+    DB_NAME: str = Field(default="ai_tg_bot", description="Database name")
+    DB_USER: str = Field(default="postgres", description="Database user")
+    DB_PASSWORD: str = Field(default="postgres", description="Database password")
+    DB_POOL_SIZE: int = Field(default=5, description="Connection pool size")
+    DB_MAX_OVERFLOW: int = Field(default=10, description="Max overflow connections")
+
+    # Cache settings (для Real collector)
+    CACHE_TTL: int = Field(default=60, description="Cache TTL in seconds")
+    CACHE_MAXSIZE: int = Field(default=100, description="Cache max size")
 
     # CORS
     CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
@@ -29,6 +43,19 @@ class Config(BaseSettings):
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+
+    @property
+    def database_url(self) -> str:
+        """
+        Формирует psycopg3 URL для подключения к БД.
+
+        Returns:
+            URL в формате postgresql+psycopg://user:password@host:port/dbname
+        """
+        return (
+            f"postgresql+psycopg://{self.DB_USER}:{self.DB_PASSWORD}"
+            f"@{self.DB_HOST}:{self.DB_PORT}/{self.DB_NAME}"
+        )
 
 
 # Глобальный экземпляр конфигурации

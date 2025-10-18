@@ -1,33 +1,15 @@
 """Роутер для статистики диалогов."""
 
 import logging
-from typing import Annotated, Literal
+from typing import Literal
 
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, HTTPException, Request
 
-from ..config import config
-from ..stats.collector import StatCollector
-from ..stats.mock_collector import MockStatCollector
 from ..stats.models import StatsResponse
 
 logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/v1", tags=["stats"])
-
-
-def get_stat_collector() -> StatCollector:
-    """
-    Dependency: получить сборщик статистики.
-
-    Returns:
-        StatCollector (Mock или Real в зависимости от конфигурации)
-
-    Raises:
-        NotImplementedError: Если тип коллектора не поддерживается
-    """
-    if config.STAT_COLLECTOR_TYPE == "mock":
-        return MockStatCollector()
-    raise NotImplementedError("Real collector not implemented yet")
 
 
 @router.get(
@@ -78,18 +60,17 @@ def get_stat_collector() -> StatCollector:
     },
 )
 async def get_stats(
-    period: Annotated[
-        Literal["day", "week", "month"],
-        "Период для статистики",
-    ],
-    collector: Annotated[StatCollector, Depends(get_stat_collector)],
+    period: Literal["day", "week", "month"],
+    request: Request,
 ) -> StatsResponse:
     """
     Получить статистику за указанный период.
 
+    Автоматически использует Mock или Real Collector на основе конфигурации.
+
     Args:
         period: Период для статистики ('day', 'week', 'month')
-        collector: Сборщик статистики (инжектируется через Depends)
+        request: FastAPI Request объект для доступа к app.state
 
     Returns:
         StatsResponse с полной статистикой
@@ -97,6 +78,8 @@ async def get_stats(
     Raises:
         HTTPException: При ошибке получения статистики
     """
+    collector = request.app.state.collector
+
     try:
         logger.info(f"Fetching stats for period={period}")
         stats = await collector.get_stats(period)

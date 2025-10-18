@@ -1,12 +1,15 @@
 """FastAPI приложение для статистики диалогов."""
 
 import logging
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from .config import config
 from .routers import stats
+from .stats.factory import create_stat_collector
 
 # Настройка логирования
 logging.basicConfig(
@@ -16,6 +19,36 @@ logging.basicConfig(
 
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None, None]:
+    """
+    Lifecycle manager для FastAPI приложения.
+
+    Управляет инициализацией и очисткой ресурсов.
+    """
+    # Инициализация при старте
+    logger.info("Starting AI TG Bot Stats API")
+    logger.info("API Version: 1.0.0")
+    logger.info(f"Collector Mode: {config.COLLECTOR_MODE}")
+    logger.info(f"CORS Origins: {config.CORS_ORIGINS}")
+
+    # Создаём collector через Factory
+    collector = create_stat_collector(config)
+    app.state.collector = collector
+    app.state.config = config
+
+    yield
+
+    # Cleanup при остановке
+    logger.info("Shutting down AI TG Bot Stats API")
+
+    # Закрываем Database если используется Real Collector
+    if hasattr(collector, "db"):
+        await collector.db.close()
+        logger.info("Database connections closed")
+
+
 # Создание FastAPI приложения
 app = FastAPI(
     title="AI TG Bot Stats API",
@@ -24,6 +57,7 @@ app = FastAPI(
     docs_url="/docs",
     redoc_url="/redoc",
     openapi_url="/openapi.json",
+    lifespan=lifespan,
 )
 
 # Настройка CORS
@@ -48,18 +82,3 @@ async def health_check() -> dict[str, str]:
         Статус здоровья сервиса
     """
     return {"status": "ok"}
-
-
-@app.on_event("startup")
-async def startup_event() -> None:
-    """Событие при запуске приложения."""
-    logger.info("Starting AI TG Bot Stats API")
-    logger.info("API Version: 1.0.0")
-    logger.info(f"Stat Collector Type: {config.STAT_COLLECTOR_TYPE}")
-    logger.info(f"CORS Origins: {config.CORS_ORIGINS}")
-
-
-@app.on_event("shutdown")
-async def shutdown_event() -> None:
-    """Событие при остановке приложения."""
-    logger.info("Shutting down AI TG Bot Stats API")

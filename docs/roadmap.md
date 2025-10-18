@@ -30,7 +30,7 @@
 | **S4** | **Frontend Framework Setup** | ✅ Завершено | Создание концепции и инфраструктуры frontend проекта. Выбор технологического стека и настройка инструментов разработки | • ✅ Next.js 15 + TypeScript 5 + npm<br>• ✅ shadcn/ui (10+ компонентов)<br>• ✅ Структура проекта и конфигурация<br>• ✅ ESLint, Prettier, pre-commit hooks<br>• ✅ Vitest + Testing Library<br>• ✅ API client с React Query<br>• ✅ Makefile команды<br>• ✅ Docker конфигурация | [tasklist-S4.md](tasklists/tasklist-S4.md) |
 | **S5** | **Dashboard Implementation** | ✅ Завершено | Реализация дашборда статистики диалогов на основе референса и интеграция с Mock API | • ✅ Dashboard Layout с Sidebar и Header<br>• ✅ Period Filter (Day/Week/Month)<br>• ✅ Summary Cards (3 метрики)<br>• ✅ Activity Timeline Chart (Recharts)<br>• ✅ Recent Dialogs & Top Users Tables (Collapsible)<br>• ✅ Responsive Design<br>• ✅ Error/Empty States | [tasklist-S5.md](tasklists/tasklist-S5.md) |
 | **S6** | **AI Chat Implementation** | ⏳ Планируется | Реализация веб-чата для администратора с возможностью задавать вопросы по статистике диалогов через text-to-SQL | • API endpoints для чата<br>• Text-to-SQL интеграция<br>• UI компоненты чата<br>• LLM integration для ответов<br>• Real-time updates<br>• Тестирование workflow | Будет создан в Plan Mode |
-| **S7** | **Real API Integration** | ⏳ Планируется | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • Real StatCollector implementation<br>• Интеграция с БД (PostgreSQL)<br>• Оптимизация SQL запросов<br>• Переключение Mock → Real<br>• Тестирование производительности<br>• Документация API | Будет создан в Plan Mode |
+| **S7** | **Real API Integration** | ⏳ Планируется | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • Real StatCollector implementation<br>• Интеграция с БД (PostgreSQL)<br>• Оптимизация SQL запросов<br>• Переключение Mock → Real<br>• Тестирование производительности<br>• Документация API | [tasklist-S7.md](tasklists/tasklist-S7.md) |
 
 ---
 
@@ -126,5 +126,6 @@
 - 2025-10-17: Спринт S4 завершен - полностью настроен frontend (Next.js, shadcn/ui, ESLint, Prettier, Vitest, React Query, Docker)
 - 2025-10-17: Создан детальный tasklist для Спринта S5 (Dashboard Implementation) - 6 блоков работ для реализации полного дашборда с интеграцией Mock API
 - 2025-10-17: Спринт S5 завершен - реализован полнофункциональный dashboard (Sidebar, Period Filter, Summary Cards, Activity Chart, Collapsible Tables, Responsive Design, Error States)
+- 2025-10-17: Создан детальный tasklist для Спринта S7 (Real API Integration) - 6 блоков работ для интеграции с PostgreSQL и замены Mock на Real сборщик статистики
 
 ---
