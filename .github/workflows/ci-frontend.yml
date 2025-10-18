@@ -54,6 +54,20 @@ jobs:
         working-directory: frontend
         run: npm test -- --run --coverage --coverage.threshold.lines=80
 
+      - name: Generate Coverage Summary
+        if: always()
+        working-directory: frontend
+        run: |
+          echo "## 📊 Frontend Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          if [ -f coverage/coverage-summary.json ]; then
+            echo '```' >> $GITHUB_STEP_SUMMARY
+            cat coverage/coverage-summary.json | jq -r '.total | "Lines: \(.lines.pct)%\nStatements: \(.statements.pct)%\nFunctions: \(.functions.pct)%\nBranches: \(.branches.pct)%"' >> $GITHUB_STEP_SUMMARY
+            echo '```' >> $GITHUB_STEP_SUMMARY
+          else
+            echo "Coverage report not available" >> $GITHUB_STEP_SUMMARY
+          fi
+
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4
         if: always()
@@ -61,6 +75,16 @@ jobs:
           name: frontend-coverage
           path: frontend/coverage
           if-no-files-found: ignore
+
+      - name: Coverage comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        if: github.event_name == 'pull_request' && hashFiles('frontend/coverage/lcov.info') != ''
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: develop
+          COVERAGE_PATH: frontend
+          MINIMUM_GREEN: 80
+          MINIMUM_ORANGE: 70
 
       - name: Build check
         working-directory: frontend

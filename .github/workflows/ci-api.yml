@@ -55,14 +55,39 @@ jobs:
       - name: Run unit tests with coverage
         working-directory: backend/api
         # TODO: Повысить coverage до 70% после добавления тестов для app.py, routers, real_collector
-        run: uv run pytest tests/ -m "not integration" --cov=src --cov-report=term --cov-report=xml --cov-fail-under=55
+        run: uv run pytest tests/ -m "not integration" --cov=src --cov-report=term --cov-report=xml --cov-report=html --cov-fail-under=55
+
+      - name: Generate Coverage Summary
+        if: always()
+        working-directory: backend/api
+        run: |
+          echo "## 📊 API Coverage Report" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          uv run coverage report >> $GITHUB_STEP_SUMMARY || echo "Coverage report not available" >> $GITHUB_STEP_SUMMARY
+          echo '```' >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          COVERAGE=$(uv run coverage report | grep TOTAL | awk '{print $4}')
+          echo "**Total Coverage:** $COVERAGE" >> $GITHUB_STEP_SUMMARY
 
       - name: Upload coverage to artifacts
         uses: actions/upload-artifact@v4
         if: always()
         with:
           name: api-coverage
-          path: backend/api/coverage.xml
+          path: |
+            backend/api/coverage.xml
+            backend/api/htmlcov/
+
+      - name: Coverage comment
+        uses: py-cov-action/python-coverage-comment-action@v3
+        if: github.event_name == 'pull_request'
+        with:
+          GITHUB_TOKEN: ${{ github.token }}
+          COVERAGE_DATA_BRANCH: develop
+          COVERAGE_PATH: backend/api
+          MINIMUM_GREEN: 70
+          MINIMUM_ORANGE: 55
 
   api-integration-tests:
     name: API - Integration Tests
