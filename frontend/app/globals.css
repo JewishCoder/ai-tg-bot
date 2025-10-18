@@ -7,7 +7,6 @@
   --radius: 0.5rem;
 }
 
-
 @theme inline {
   --color-sidebar: hsl(var(--sidebar));
   --color-sidebar-foreground: hsl(var(--sidebar-foreground));

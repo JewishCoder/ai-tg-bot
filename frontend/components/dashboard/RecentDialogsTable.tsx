@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { useState } from "react"
 import {
@@ -8,19 +8,15 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from '@/components/ui/table'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Badge } from '@/components/ui/badge'
-import { Button } from '@/components/ui/button'
-import { Skeleton } from '@/components/ui/skeleton'
-import {
-  Collapsible,
-  CollapsibleContent,
-  CollapsibleTrigger,
-} from '@/components/ui/collapsible'
-import { ChevronDown } from 'lucide-react'
-import { RecentDialog } from '@/types/api'
-import { formatRelativeTime, formatDuration } from '@/lib/utils/date'
+} from "@/components/ui/table"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import { Skeleton } from "@/components/ui/skeleton"
+import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible"
+import { ChevronDown } from "lucide-react"
+import { RecentDialog } from "@/types/api"
+import { formatRelativeTime, formatDuration } from "@/lib/utils/date"
 
 interface RecentDialogsTableProps {
   data: RecentDialog[]
@@ -50,14 +46,12 @@ export function RecentDialogsTable({ data, isLoading }: RecentDialogsTableProps)
           <div className="flex items-center justify-between">
             <div>
               <CardTitle>Последние диалоги</CardTitle>
-              <p className="text-sm text-muted-foreground">
-                {data.length} последних диалогов
-              </p>
+              <p className="text-muted-foreground text-sm">{data.length} последних диалогов</p>
             </div>
             <CollapsibleTrigger asChild>
               <Button variant="ghost" size="sm">
-                <ChevronDown 
-                  className={`h-4 w-4 transition-transform ${isOpen ? 'rotate-180' : ''}`} 
+                <ChevronDown
+                  className={`h-4 w-4 transition-transform ${isOpen ? "rotate-180" : ""}`}
                 />
               </Button>
             </CollapsibleTrigger>
@@ -77,13 +71,11 @@ export function RecentDialogsTable({ data, isLoading }: RecentDialogsTableProps)
               <TableBody>
                 {data.map((dialog) => (
                   <TableRow key={dialog.user_id}>
-                    <TableCell className="font-mono text-sm">
-                      {dialog.user_id}
-                    </TableCell>
+                    <TableCell className="font-mono text-sm">{dialog.user_id}</TableCell>
                     <TableCell className="text-right">
                       <Badge variant="secondary">{dialog.message_count}</Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
+                    <TableCell className="text-muted-foreground text-sm">
                       {formatRelativeTime(dialog.last_message_at)}
                     </TableCell>
                     <TableCell className="text-right text-sm">
@@ -99,4 +91,3 @@ export function RecentDialogsTable({ data, isLoading }: RecentDialogsTableProps)
     </Collapsible>
   )
 }
-

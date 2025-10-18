@@ -23,4 +23,3 @@ describe("ApiClient", () => {
     expect(mockSummary.avg_dialog_length).toBe(3.5)
   })
 })
-

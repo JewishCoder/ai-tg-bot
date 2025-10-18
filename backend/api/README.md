@@ -98,31 +98,61 @@ cp .env.example .env
 ### Установка dev зависимостей
 
 ```bash
-& "$env:USERPROFILE\.local\bin\uv.exe" sync --extra dev
+# Через глобальный Makefile (рекомендуется)
+make api-install
+
+# Или напрямую через UV
+cd backend/api
+& "$env:USERPROFILE\.local\bin\uv.exe" sync --all-extras
 ```
 
 ### Запуск тестов
 
 ```bash
-# Все тесты
-& "$env:USERPROFILE\.local\bin\uv.exe" run pytest tests/ -v
+# Все тесты с coverage
+make api-test-cov
 
-# С coverage
-& "$env:USERPROFILE\.local\bin\uv.exe" run pytest --cov=src --cov-report=term
+# Только unit тесты (быстро)
+make api-test
 ```
 
 ### Проверка качества кода
 
 ```bash
-# Линтер
-& "$env:USERPROFILE\.local\bin\uv.exe" run ruff check src tests
+# Проверка линтером + типами (MyPy)
+make api-lint
 
-# Форматирование
-& "$env:USERPROFILE\.local\bin\uv.exe" run ruff format src tests
-
-# Type checking
-& "$env:USERPROFILE\.local\bin\uv.exe" run mypy src
+# Автоматическое форматирование
+make api-format
 ```
+
+### Запуск API сервера
+
+```bash
+# Development режим (с hot reload)
+make api-dev
+
+# Production режим
+make api-run
+```
+
+### Доступные Makefile команды
+
+Из корня проекта:
+
+```bash
+make help  # Показать все доступные команды
+```
+
+| Команда | Описание |
+|---------|----------|
+| `make api-install` | Установить все зависимости |
+| `make api-format` | Отформатировать код (Ruff) |
+| `make api-lint` | Проверить код (Ruff + MyPy) |
+| `make api-test` | Запустить тесты |
+| `make api-test-cov` | Запустить тесты с coverage |
+| `make api-dev` | Запустить сервер (dev с hot-reload) |
+| `make api-run` | Запустить сервер (production) |
 
 ## Структура проекта
 

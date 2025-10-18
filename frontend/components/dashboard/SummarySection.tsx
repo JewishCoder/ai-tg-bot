@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import { Users, MessageSquare, Activity } from "lucide-react"
 import { StatsCard } from "./StatsCard"
@@ -20,7 +20,7 @@ export function SummarySection({ data, isLoading }: SummarySectionProps) {
           <Card key={i}>
             <CardContent className="p-6">
               <Skeleton className="h-4 w-[100px]" />
-              <Skeleton className="h-8 w-[120px] mt-2" />
+              <Skeleton className="mt-2 h-8 w-[120px]" />
             </CardContent>
           </Card>
         ))}
@@ -53,4 +53,3 @@ export function SummarySection({ data, isLoading }: SummarySectionProps) {
     </div>
   )
 }
-

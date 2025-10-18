@@ -82,7 +82,7 @@ async def get_stats(
 
     try:
         logger.info(f"Fetching stats for period={period}")
-        stats = await collector.get_stats(period)
+        stats: StatsResponse = await collector.get_stats(period)
         logger.info(f"Successfully fetched stats for period={period}")
         return stats
     except ValueError as e:

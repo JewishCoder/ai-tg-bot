@@ -32,4 +32,3 @@ export interface StatsResponse {
 }
 
 export type Period = "day" | "week" | "month"
-

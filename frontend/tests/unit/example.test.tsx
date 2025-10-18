@@ -7,4 +7,3 @@ describe("Example Test", () => {
     expect(screen.getByText("Hello World")).toBeInTheDocument()
   })
 })
-

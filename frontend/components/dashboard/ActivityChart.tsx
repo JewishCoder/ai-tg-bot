@@ -1,4 +1,4 @@
-'use client'
+"use client"
 
 import {
   LineChart,
@@ -9,12 +9,12 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
-} from 'recharts'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Skeleton } from '@/components/ui/skeleton'
-import { ActivityPoint, Period } from '@/types/api'
-import { formatChartDate } from '@/lib/utils/date'
-import { formatNumber } from '@/lib/utils/formatters'
+} from "recharts"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { Skeleton } from "@/components/ui/skeleton"
+import { ActivityPoint, Period } from "@/types/api"
+import { formatChartDate } from "@/lib/utils/date"
+import { formatNumber } from "@/lib/utils/formatters"
 
 interface ActivityChartProps {
   data: ActivityPoint[]
@@ -46,37 +46,31 @@ export function ActivityChart({ data, period, isLoading }: ActivityChartProps) {
     <Card>
       <CardHeader>
         <CardTitle>Активность по времени</CardTitle>
-        <p className="text-sm text-muted-foreground">
-          Сообщения и активные пользователи
-        </p>
+        <p className="text-muted-foreground text-sm">Сообщения и активные пользователи</p>
       </CardHeader>
       <CardContent>
         <ResponsiveContainer width="100%" height={300}>
           <LineChart data={chartData}>
             <CartesianGrid strokeDasharray="3 3" />
-            <XAxis 
-              dataKey="timestamp" 
-              fontSize={12}
-              tickMargin={10}
-            />
-            <YAxis 
+            <XAxis dataKey="timestamp" fontSize={12} tickMargin={10} />
+            <YAxis
               yAxisId="left"
               fontSize={12}
               tickFormatter={(value: number) => formatNumber(value)}
             />
-            <YAxis 
-              yAxisId="right" 
+            <YAxis
+              yAxisId="right"
               orientation="right"
               fontSize={12}
               tickFormatter={(value: number) => formatNumber(value)}
             />
-            <Tooltip 
+            <Tooltip
               formatter={(value: number) => formatNumber(value)}
-              labelStyle={{ color: 'hsl(var(--foreground))' }}
+              labelStyle={{ color: "hsl(var(--foreground))" }}
               contentStyle={{
-                backgroundColor: 'hsl(var(--background))',
-                border: '1px solid hsl(var(--border))',
-                borderRadius: '6px',
+                backgroundColor: "hsl(var(--background))",
+                border: "1px solid hsl(var(--border))",
+                borderRadius: "6px",
               }}
             />
             <Legend />
@@ -106,4 +100,3 @@ export function ActivityChart({ data, period, isLoading }: ActivityChartProps) {
     </Card>
   )
 }
-

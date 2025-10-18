@@ -69,9 +69,10 @@ class RealStatCollector(StatCollector):
 
         # Проверяем кеш
         cache_key = f"stats:{period}"
-        if cache_key in self.cache:
+        cached_value = self.cache.get(cache_key)
+        if cached_value is not None:
             logger.debug(f"Cache HIT for {cache_key}")
-            return self.cache[cache_key]
+            return cached_value
 
         logger.info(f"Cache MISS for {cache_key}, fetching from DB (period={period})")
 
