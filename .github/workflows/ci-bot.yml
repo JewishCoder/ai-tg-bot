@@ -1,18 +1,19 @@
 name: CI - Bot
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - "backend/bot/**"
-      - ".build/Dockerfile"
-      - ".github/workflows/ci-bot.yml"
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - "backend/bot/**"
-      - ".build/Dockerfile"
-      - ".github/workflows/ci-bot.yml"
+  # Временно отключено для тестирования unified CI
+  # push:
+  #   branches: [main, develop]
+  #   paths:
+  #     - "backend/bot/**"
+  #     - ".build/Dockerfile"
+  #     - ".github/workflows/ci-bot.yml"
+  # pull_request:
+  #   branches: [main, develop]
+  #   paths:
+  #     - "backend/bot/**"
+  #     - ".build/Dockerfile"
+  #     - ".github/workflows/ci-bot.yml"
   workflow_dispatch:
   workflow_call: # Позволяет вызывать этот workflow из других workflows
 

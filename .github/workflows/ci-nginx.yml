@@ -1,16 +1,17 @@
 name: CI - Nginx
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - ".build/nginx/**"
-      - ".github/workflows/ci-nginx.yml"
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - ".build/nginx/**"
-      - ".github/workflows/ci-nginx.yml"
+  # Временно отключено для тестирования unified CI
+  # push:
+  #   branches: [main, develop]
+  #   paths:
+  #     - ".build/nginx/**"
+  #     - ".github/workflows/ci-nginx.yml"
+  # pull_request:
+  #   branches: [main, develop]
+  #   paths:
+  #     - ".build/nginx/**"
+  #     - ".github/workflows/ci-nginx.yml"
   workflow_dispatch:
   workflow_call: # Позволяет вызывать этот workflow из других workflows
 

@@ -1,16 +1,17 @@
 name: CI - API
 
 on:
-  push:
-    branches: [main, develop]
-    paths:
-      - "backend/api/**"
-      - ".github/workflows/ci-api.yml"
-  pull_request:
-    branches: [main, develop]
-    paths:
-      - "backend/api/**"
-      - ".github/workflows/ci-api.yml"
+  # Временно отключено для тестирования unified CI
+  # push:
+  #   branches: [main, develop]
+  #   paths:
+  #     - "backend/api/**"
+  #     - ".github/workflows/ci-api.yml"
+  # pull_request:
+  #   branches: [main, develop]
+  #   paths:
+  #     - "backend/api/**"
+  #     - ".github/workflows/ci-api.yml"
   workflow_dispatch:
   workflow_call: # Позволяет вызывать этот workflow из других workflows
 

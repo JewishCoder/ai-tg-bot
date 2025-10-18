@@ -100,7 +100,7 @@ jobs:
           echo "" >> $GITHUB_STEP_SUMMARY
           echo "### Services Status:" >> $GITHUB_STEP_SUMMARY
           echo "" >> $GITHUB_STEP_SUMMARY
-          
+
           # Bot
           BOT_STATUS="${{ needs.bot.result }}"
           if [ "$BOT_STATUS" == "success" ]; then
@@ -110,7 +110,7 @@ jobs:
           else
             echo "- 🤖 **Bot**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # API
           API_STATUS="${{ needs.api.result }}"
           if [ "$API_STATUS" == "success" ]; then
@@ -120,7 +120,7 @@ jobs:
           else
             echo "- 🔌 **API**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Frontend
           FRONTEND_STATUS="${{ needs.frontend.result }}"
           if [ "$FRONTEND_STATUS" == "success" ]; then
@@ -130,7 +130,7 @@ jobs:
           else
             echo "- 🎨 **Frontend**: ❌ Failed" >> $GITHUB_STEP_SUMMARY
           fi
-          
+
           # Nginx
           NGINX_STATUS="${{ needs.nginx.result }}"
           if [ "$NGINX_STATUS" == "success" ]; then
