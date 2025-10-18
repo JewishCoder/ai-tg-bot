@@ -140,6 +140,8 @@ jobs:
           TEST_DB_NAME: testdb
           TEST_DB_USER: testuser
           TEST_DB_PASSWORD: testpassword
+          ADMIN_REGISTRATION_TOKEN: test_admin_token_for_ci
+          STATS_API_RATE_LIMIT: "100/minute"
         run: uv run pytest tests/ -m integration -v
 
   api-docker:
@@ -173,7 +175,7 @@ jobs:
       - name: Build and push Docker image
         uses: docker/build-push-action@v5
         with:
-          context: ./backend/api
+          context: ./backend
           file: ./backend/api/Dockerfile
           push: true
           tags: |

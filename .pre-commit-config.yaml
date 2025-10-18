@@ -2,6 +2,22 @@ repos:
   - repo: https://github.com/astral-sh/ruff-pre-commit
     rev: v0.8.4
     hooks:
+      # Bot service - linting with auto-fix
       - id: ruff
+        name: ruff-lint (bot)
         args: [--fix]
+        files: ^backend/bot/
+      # Bot service - formatting with auto-fix
       - id: ruff-format
+        name: ruff-format (bot)
+        files: ^backend/bot/
+
+      # API service - linting with auto-fix
+      - id: ruff
+        name: ruff-lint (api)
+        args: [--fix]
+        files: ^backend/api/
+      # API service - formatting with auto-fix
+      - id: ruff-format
+        name: ruff-format (api)
+        files: ^backend/api/

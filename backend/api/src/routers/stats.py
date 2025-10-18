@@ -3,9 +3,11 @@
 import logging
 from typing import Literal
 
-from fastapi import APIRouter, HTTPException, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 
+from ..middlewares.rate_limit import limiter
 from ..stats.models import StatsResponse
+from ..utils.auth import verify_credentials
 
 logger = logging.getLogger(__name__)
 
@@ -17,6 +19,7 @@ router = APIRouter(prefix="/api/v1", tags=["stats"])
     response_model=StatsResponse,
     summary="Получить статистику диалогов",
     description="Возвращает агрегированную статистику диалогов за указанный период (day/week/month)",
+    dependencies=[Depends(verify_credentials)],
     responses={
         200: {
             "description": "Успешный ответ",
@@ -55,10 +58,13 @@ router = APIRouter(prefix="/api/v1", tags=["stats"])
                 }
             },
         },
+        401: {"description": "Неправильные credentials"},
         422: {"description": "Невалидный параметр period"},
+        429: {"description": "Rate limit exceeded"},
         500: {"description": "Внутренняя ошибка сервера"},
     },
 )
+@limiter.limit("10/minute")
 async def get_stats(
     period: Literal["day", "week", "month"],
     request: Request,

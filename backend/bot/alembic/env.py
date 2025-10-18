@@ -1,10 +1,17 @@
+import os
 from logging.config import fileConfig
 
+from dotenv import load_dotenv
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
 from src.config import Config as AppConfig
 from src.models import Base
+
+# Загружаем .env.development для миграций
+env_file = os.getenv("ENV_FILE", ".env.development")
+if os.path.exists(env_file):
+    load_dotenv(env_file)
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.

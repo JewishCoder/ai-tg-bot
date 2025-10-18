@@ -75,8 +75,8 @@ services:
   aitgapi:
     # Development mode (local build)
     build:
-      context: ./backend/api
-      dockerfile: Dockerfile
+      context: ./backend # Расширяем context до backend для доступа к bot/src
+      dockerfile: api/Dockerfile
 
     # Production mode (use image from registry)
     # Uncomment the line below and comment out 'build' section above
@@ -88,7 +88,7 @@ services:
       - API_PORT=8000
       - API_VERSION=v1
       - COLLECTOR_MODE=real
-      - DB_HOST=${DB_HOST:-localhost}
+      - DB_HOST=${DB_HOST:-postgres}
       - DB_PORT=${DB_PORT:-5432}
       - DB_NAME=${DB_NAME:-ai_tg_bot}
       - DB_USER=${DB_USER:-botuser}
@@ -100,6 +100,7 @@ services:
       - CORS_ORIGINS=["http://localhost:8081"]
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
+      - ADMIN_REGISTRATION_TOKEN=${ADMIN_REGISTRATION_TOKEN}
     restart: unless-stopped
     healthcheck:
       test:
@@ -124,6 +125,11 @@ services:
     build:
       context: ./frontend
       dockerfile: Dockerfile
+      args:
+        - NEXT_PUBLIC_API_URL=http://localhost:8081
+        - NEXT_PUBLIC_APP_URL=http://localhost:3000
+        - NEXT_PUBLIC_API_USERNAME=${NEXT_PUBLIC_API_USERNAME:-}
+        - NEXT_PUBLIC_API_PASSWORD=${NEXT_PUBLIC_API_PASSWORD:-}
 
     # Production mode (use image from registry)
     # Uncomment the line below and comment out 'build' section above
@@ -132,6 +138,8 @@ services:
     container_name: ai-tg-bot-frontend
     environment:
       - NEXT_PUBLIC_API_URL=http://localhost:8081
+      - NEXT_PUBLIC_API_USERNAME=${NEXT_PUBLIC_API_USERNAME}
+      - NEXT_PUBLIC_API_PASSWORD=${NEXT_PUBLIC_API_PASSWORD}
       - NODE_ENV=production
     depends_on:
       - aitgapi

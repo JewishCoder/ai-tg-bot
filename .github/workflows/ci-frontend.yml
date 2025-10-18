@@ -142,6 +142,8 @@ jobs:
           build-args: |
             NEXT_PUBLIC_API_URL=${{ secrets.NEXT_PUBLIC_API_URL }}
             NEXT_PUBLIC_APP_URL=${{ secrets.NEXT_PUBLIC_APP_URL }}
+            NEXT_PUBLIC_API_USERNAME=${{ secrets.NEXT_PUBLIC_API_USERNAME }}
+            NEXT_PUBLIC_API_PASSWORD=${{ secrets.NEXT_PUBLIC_API_PASSWORD }}
 
       - name: Image info
         run: |

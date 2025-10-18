@@ -32,6 +32,7 @@
 | **S6** | **AI Chat Implementation** | ⏳ Планируется | Реализация веб-чата для администратора с возможностью задавать вопросы по статистике диалогов через text-to-SQL | • API endpoints для чата<br>• Text-to-SQL интеграция<br>• UI компоненты чата<br>• LLM integration для ответов<br>• Real-time updates<br>• Тестирование workflow | Будет создан в Plan Mode |
 | **S7** | **Real API Integration** | ✅ Завершено | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • ✅ Real StatCollector implementation<br>• ✅ Интеграция с БД (PostgreSQL)<br>• ✅ Оптимизация SQL запросов<br>• ✅ Переключение Mock → Real через конфигурацию<br>• ✅ Integration тесты с PostgreSQL<br>• ✅ Документация API обновлена | [tasklist-S7.md](tasklists/tasklist-S7.md) |
 | **S8** | **CI/CD Infrastructure для Multi-Service** | ✅ Завершено | Адаптация CI/CD процессов для multi-service архитектуры с полной автоматизацией проверки качества кода и сборки Docker образов для всех сервисов | • ✅ Version Management (4 сервиса)<br>• ✅ API CI/CD Pipeline с PostgreSQL<br>• ✅ Frontend CI/CD Pipeline<br>• ✅ Nginx Dockerfile и CI/CD<br>• ✅ Separate workflows для гибкости<br>• ✅ Docker Compose для production<br>• ✅ Документация CI/CD | [tasklist-S8.md](tasklists/tasklist-S8.md) |
+| **S9** | **Production Readiness & Observability** | 🚧 В процессе | Подготовка системы к production deployment на основе результатов code review. Фокус на безопасность, observability, производительность и качество | • ✅ Security Hardening (User Registration, Auth, Rate Limiting, CORS)<br>• ⏳ Observability (Prometheus Metrics, Enhanced Logging)<br>• ⏳ Performance Optimization (DB Queries, Connection Pooling)<br>• ⏳ Testing & Quality (Load Tests, Frontend Unit Tests)<br>• ⏳ DevOps Improvements (Healthchecks, Deployment)<br>• ⏳ Documentation (Диаграммы, Troubleshooting Guide) | [tasklist-S9.md](tasklists/tasklist-S9.md) |
 
 ---
 
@@ -153,6 +154,69 @@
   - Инструкции по версионированию и релизам
   - Тестирование полного workflow на тестовых ветках
 
+### Спринт S9: Production Readiness & Observability
+
+**Цель**: Подготовить систему к production deployment на основе результатов code review-0002. Устранить найденные проблемы и реализовать рекомендации по безопасности, observability и производительности.
+
+**Состав работ**:
+
+- **Блок 1: Security Hardening** ✅ **ЗАВЕРШЕН** (2025-10-18)
+  - ✅ Задача #1.4: User Registration для Stats API на основе admin token (ApiUser модель, миграция)
+  - ✅ Задача #1.1: Authentication для Stats API с проверкой через PostgreSQL (Basic Auth)
+  - ✅ Задача #1.2: Rate limiting для Stats API (slowapi, 10/minute)
+  - ✅ Задача #1.3: CORS middleware для production (whitelist origins, credentials support)
+  - ✅ Задача #1.5: Документация по secrets management (Vault/AWS Secrets/K8s)
+
+- **Блок 2: Observability** (High Priority)
+  - ✅ Задача #3: Улучшить логирование Real Collector (query timing, slow query warnings)
+  - Добавить Prometheus metrics экспорт для Bot:
+    - LLM request latency histogram
+    - Request rate counter
+    - Error rate counter
+    - Fallback usage counter
+  - Добавить Prometheus metrics экспорт для API:
+    - API request latency histogram
+    - Database query latency histogram
+    - Connection pool metrics
+  - Расширить health check endpoints с детальной информацией
+
+- **Блок 3: Performance Optimization** (Medium Priority)
+  - Database query optimization:
+    - Добавить EXPLAIN ANALYZE для всех сложных запросов Real Collector
+    - Query performance logging в development mode
+    - Предупреждения о медленных запросах (> 1s)
+  - Connection pooling tuning:
+    - Увеличить pool_size и max_overflow для production
+    - Добавить pool_pre_ping для connection health checks
+    - Документировать рекомендованные настройки для разных нагрузок
+
+- **Блок 4: Testing & Quality** (Medium Priority)
+  - ✅ Задача #4: Рефакторинг тестовых констант (вынести в константы для переиспользования)
+  - ✅ Задача #6: Добавить frontend unit тесты для недостающих компонентов (ActivityChart, PeriodFilter, app-sidebar)
+  - Load testing infrastructure:
+    - Настроить locust или k6 для нагрузочного тестирования
+    - Создать сценарии для Bot и API
+    - Документировать результаты baseline performance
+  - Contract testing между Frontend и API (опционально)
+
+- **Блок 5: DevOps Improvements** (Low Priority)
+  - ✅ Задача #5: Healthcheck improvements в docker-compose (depends_on с condition: service_healthy)
+  - Добавить production профили в docker-compose
+  - Создать deployment automation scripts
+  - Graceful shutdown improvements
+
+- **Блок 6: Documentation** (Low Priority)
+  - ✅ Рекомендация #5.1: Создать архитектурные диаграммы (Mermaid):
+    - Sequence diagram для LLM request flow (с fallback)
+    - Architecture diagram для multi-service системы
+    - ER diagram для database schema
+  - ✅ Рекомендация #5.2: Создать troubleshooting guide (`docs/guides/troubleshooting.md`):
+    - Common errors и их решения
+    - Database migration issues
+    - LLM API проблемы (rate limits, timeouts, fallback)
+    - Docker проблемы
+  - Production deployment guide
+
 ---
 
 ## 📝 Примечания
@@ -163,7 +227,7 @@
 
 ### Дата последнего обновления
 
-**Обновлено**: 2025-10-19
+**Обновлено**: 2025-10-18 (Спринт S9 - Блок 1 завершен)
 
 **История изменений**:
 
@@ -179,5 +243,7 @@
 - 2025-10-17: Спринт S7 завершен - переход на Real API с PostgreSQL (RealStatCollector, оптимизированные SQL запросы с индексами, конфигурируемое переключение Mock/Real, integration тесты с service container, обновленная документация)
 - 2025-10-18: Добавлен спринт S8 (CI/CD Infrastructure для Multi-Service) - адаптация CI/CD для Bot, API, Frontend, Nginx с версионированием и автоматизацией сборки Docker образов
 - 2025-10-19: Спринт S8 завершен - полная CI/CD инфраструктура для multi-service архитектуры (4 отдельных workflows, версионирование, автоматическая сборка и публикация Docker образов, production docker-compose, полная документация)
+- 2025-10-18: Добавлен спринт S9 (Production Readiness & Observability) на основе code review-0002 - фокус на security hardening (User Registration с admin token, Auth, Rate Limiting), observability (Prometheus metrics), performance optimization, load testing, архитектурные диаграммы и troubleshooting guide
+- 2025-10-18: Спринт S9 - Завершен Блок 1 (Security Hardening) - реализованы все 5 задач: User Registration с admin token и ApiUser модель, Basic Auth для Stats API с проверкой через PostgreSQL, Rate Limiting (slowapi, 10/minute), улучшенные CORS настройки, документация по secrets management. CI/CD исправления (Dockerfile context для API, frontend build-args для credentials)
 
 ---

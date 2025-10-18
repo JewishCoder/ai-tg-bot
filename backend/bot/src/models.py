@@ -104,3 +104,22 @@ class UserSettings(Base):
 
     # Relationships
     user: Mapped["User"] = relationship(back_populates="settings")
+
+
+class ApiUser(Base):
+    """
+    Модель пользователя для API Stats Dashboard.
+
+    Хранит credentials для доступа к Stats API через Basic Auth.
+    Используется для аутентификации запросов к статистике.
+    """
+
+    __tablename__ = "api_users"
+
+    id: Mapped[int] = mapped_column(primary_key=True)
+    username: Mapped[str] = mapped_column(String(50), unique=True, nullable=False, index=True)
+    hashed_password: Mapped[str] = mapped_column(String(255), nullable=False)
+    is_active: Mapped[bool] = mapped_column(default=True)
+    created_at: Mapped[datetime] = mapped_column(
+        TIMESTAMP(timezone=True), server_default=func.now()
+    )

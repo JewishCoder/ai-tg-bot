@@ -38,6 +38,7 @@ jobs:
               - '.github/workflows/ci-bot.yml'
             api:
               - 'backend/api/**'
+              - 'backend/bot/src/models.py'
               - '.github/workflows/ci.yml'
               - '.github/workflows/ci-api.yml'
             frontend:

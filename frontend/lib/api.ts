@@ -9,6 +9,12 @@ class ApiClient {
     this.client = axios.create({
       baseURL: apiConfig.baseUrl,
       timeout: apiConfig.timeout,
+      auth: apiConfig.auth.username
+        ? {
+            username: apiConfig.auth.username,
+            password: apiConfig.auth.password,
+          }
+        : undefined,
       headers: { "Content-Type": "application/json" },
     })
   }

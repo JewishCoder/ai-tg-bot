@@ -1,7 +1,11 @@
 """Конфигурация API."""
 
-from pydantic import Field
+import logging
+
+from pydantic import Field, SecretStr, field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
+
+logger = logging.getLogger(__name__)
 
 
 class Config(BaseSettings):
@@ -45,11 +49,37 @@ class Config(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
 
+    # Auth settings
+    ADMIN_REGISTRATION_TOKEN: SecretStr = Field(
+        default=SecretStr("change-me-in-production"),
+        description="Admin token for user registration",
+    )
+
+    # Rate limiting
+    STATS_API_RATE_LIMIT: str = Field(
+        default="10/minute", description="Rate limit for stats endpoint"
+    )
+
     model_config = SettingsConfigDict(
         env_file=".env",
         env_file_encoding="utf-8",
         case_sensitive=True,
     )
+
+    @field_validator("CORS_ORIGINS")
+    @classmethod
+    def validate_cors_origins(cls, v: list[str]) -> list[str]:
+        """
+        Валидирует CORS origins.
+
+        Предупреждает если используется wildcard "*" (не рекомендуется для production).
+        """
+        if "*" in v:
+            logger.warning(
+                "CORS wildcard '*' detected in CORS_ORIGINS. "
+                "Not recommended for production! Use specific origins instead."
+            )
+        return v
 
     @property
     def database_url(self) -> str:
