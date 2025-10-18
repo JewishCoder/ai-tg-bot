@@ -525,29 +525,49 @@ env:
 
 ---
 
-### Проблема: Nginx Configuration Validation Failed
+### Проблема: Nginx Configuration Validation Failed - Host Not Found
 
 **Симптомы**: 
 ```
+[emerg] 1#1: host not found in upstream "frontend:3000" in /etc/nginx/nginx.conf:7
 Nginx - Validate Configuration: Process completed with exit code 1
 ```
 
-**Причина**: Возможные проблемы:
-1. Пустая строка в конце `nginx.conf`
-2. Неправильный путь монтирования в Docker
-3. Отсутствие явного указания конфигурационного файла
+**Причина**: 
+Nginx не может разрешить upstream hosts (`frontend:3000`, `api:8000`) при standalone запуске в CI, так как эти DNS имена существуют только в docker-compose сети.
 
-**Решение**: 
-1. Убрана лишняя пустая строка в `nginx.conf`
-2. Изменена команда валидации:
-   ```yaml
-   run: |
-     ls -la .build/nginx/nginx.conf  # Проверка существования
-     docker run --rm \
-       -v $(pwd)/.build/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
-       nginx:alpine \
-       nginx -t -c /etc/nginx/nginx.conf  # Явное указание конфига
-   ```
+**Неправильное решение** ❌:
+```yaml
+# Напрямую валидировать конфигурацию с docker-compose именами
+docker run --rm \
+  -v $(pwd)/.build/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+  nginx:alpine \
+  nginx -t
+# → host not found in upstream
+```
+
+**Правильное решение** ✅:
+Создаем временную тестовую конфигурацию с заменой docker имен на localhost:
+
+```yaml
+- name: Test nginx configuration syntax
+  run: |
+    # Создаем тестовую конфигурацию с localhost вместо Docker имен
+    sed 's/frontend:3000/localhost:3000/g; s/api:8000/localhost:8000/g' \
+      .build/nginx/nginx.conf > /tmp/nginx-test.conf
+    
+    # Проверяем синтаксис тестовой конфигурации
+    docker run --rm \
+      -v "/tmp/nginx-test.conf:/etc/nginx/nginx.conf:ro" \
+      nginx:alpine \
+      nginx -t
+```
+
+**Что это дает**:
+- ✅ Проверяется синтаксис конфигурации
+- ✅ Нет проблем с DNS резолвингом
+- ✅ Оригинальная конфигурация остается неизменной
+- ✅ Работает в любом окружении (CI, локально)
 
 ### Проблема: GitHub Actions не запускаются
 

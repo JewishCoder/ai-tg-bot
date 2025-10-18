@@ -34,14 +34,31 @@ jobs:
 
       - name: Test nginx configuration syntax
         run: |
-          # Проверяем что файл существует
+          echo "📄 Checking nginx.conf..."
           ls -la .build/nginx/nginx.conf
 
-          # Тестируем конфигурацию через Docker
+          echo ""
+          echo "🔧 Creating test configuration..."
+          # Создаем временную конфигурацию с localhost вместо Docker имен
+          # Это нужно потому что в CI нет docker-compose сети
+          sed 's/frontend:3000/localhost:3000/g; s/api:8000/localhost:8000/g' \
+            .build/nginx/nginx.conf > /tmp/nginx-test.conf
+
+          echo ""
+          echo "📄 Test configuration:"
+          cat /tmp/nginx-test.conf
+
+          echo ""
+          echo "🔍 Validating nginx syntax..."
+
+          # Проверяем синтаксис через nginx -t
           docker run --rm \
-            -v $(pwd)/.build/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+            -v "/tmp/nginx-test.conf:/etc/nginx/nginx.conf:ro" \
             nginx:alpine \
-            nginx -t -c /etc/nginx/nginx.conf
+            nginx -t
+
+          echo ""
+          echo "✅ Nginx configuration syntax is valid!"
 
   nginx-docker:
     name: Nginx - Build and Push Docker Image
