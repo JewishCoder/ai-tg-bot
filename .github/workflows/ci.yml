@@ -8,10 +8,9 @@ on:
   workflow_dispatch:
 
 # Автоматическая отмена устаревших сборок при новых коммитах
-# Отключено: каждый push должен завершиться для диагностики
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 
 jobs:
   # ===== Detect Changes =====
@@ -52,33 +51,33 @@ jobs:
 
   # ===== Call Bot Workflow =====
   bot:
-    name: Bot CI
+    name: "Bot CI"
     needs: changes
-    if: needs.changes.outputs.bot == 'true'
+    if: always() && needs.changes.outputs.bot == 'true'
     uses: ./.github/workflows/ci-bot.yml
     secrets: inherit
 
   # ===== Call API Workflow =====
   api:
-    name: API CI
+    name: "API CI"
     needs: changes
-    if: needs.changes.outputs.api == 'true'
+    if: always() && needs.changes.outputs.api == 'true'
     uses: ./.github/workflows/ci-api.yml
     secrets: inherit
 
   # ===== Call Frontend Workflow =====
   frontend:
-    name: Frontend CI
+    name: "Frontend CI"
     needs: changes
-    if: needs.changes.outputs.frontend == 'true'
+    if: always() && needs.changes.outputs.frontend == 'true'
     uses: ./.github/workflows/ci-frontend.yml
     secrets: inherit
 
   # ===== Call Nginx Workflow =====
   nginx:
-    name: Nginx CI
+    name: "Nginx CI"
     needs: changes
-    if: needs.changes.outputs.nginx == 'true'
+    if: always() && needs.changes.outputs.nginx == 'true'
     uses: ./.github/workflows/ci-nginx.yml
     secrets: inherit
 
