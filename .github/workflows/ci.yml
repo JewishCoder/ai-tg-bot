@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
 
 # Автоматическая отмена устаревших сборок при новых коммитах
+# Отключено: каждый push должен завершиться для диагностики
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 
 jobs:
   # ===== Detect Changes =====
