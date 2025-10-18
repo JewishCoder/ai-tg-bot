@@ -12,6 +12,7 @@ on:
       - "frontend/**"
       - ".github/workflows/ci-frontend.yml"
   workflow_dispatch:
+  workflow_call: # Позволяет вызывать этот workflow из других workflows
 
 # Автоматическая отмена устаревших сборок при новых коммитах
 concurrency:

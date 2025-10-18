@@ -1,0 +1,127 @@
+name: CI - All Services
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+# Автоматическая отмена устаревших сборок при новых коммитах
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  # ===== Detect Changes =====
+  changes:
+    name: Detect Changes
+    runs-on: ubuntu-latest
+    outputs:
+      bot: ${{ steps.filter.outputs.bot }}
+      api: ${{ steps.filter.outputs.api }}
+      frontend: ${{ steps.filter.outputs.frontend }}
+      nginx: ${{ steps.filter.outputs.nginx }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Check for changes
+        uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            bot:
+              - 'backend/bot/**'
+              - '.build/Dockerfile'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-bot.yml'
+            api:
+              - 'backend/api/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-api.yml'
+            frontend:
+              - 'frontend/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-frontend.yml'
+            nginx:
+              - '.build/nginx/**'
+              - '.github/workflows/ci.yml'
+              - '.github/workflows/ci-nginx.yml'
+
+  # ===== Call Bot Workflow =====
+  bot:
+    name: Bot CI
+    needs: changes
+    if: needs.changes.outputs.bot == 'true'
+    uses: ./.github/workflows/ci-bot.yml
+    secrets: inherit
+
+  # ===== Call API Workflow =====
+  api:
+    name: API CI
+    needs: changes
+    if: needs.changes.outputs.api == 'true'
+    uses: ./.github/workflows/ci-api.yml
+    secrets: inherit
+
+  # ===== Call Frontend Workflow =====
+  frontend:
+    name: Frontend CI
+    needs: changes
+    if: needs.changes.outputs.frontend == 'true'
+    uses: ./.github/workflows/ci-frontend.yml
+    secrets: inherit
+
+  # ===== Call Nginx Workflow =====
+  nginx:
+    name: Nginx CI
+    needs: changes
+    if: needs.changes.outputs.nginx == 'true'
+    uses: ./.github/workflows/ci-nginx.yml
+    secrets: inherit
+
+  # ===== Summary =====
+  summary:
+    name: CI Summary
+    runs-on: ubuntu-latest
+    needs: [changes, bot, api, frontend, nginx]
+    if: always()
+    steps:
+      - name: Generate Summary
+        run: |
+          echo "## 🎯 CI Results Summary" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "### Services Checked:" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+
+          if [ "${{ needs.changes.outputs.bot }}" == "true" ]; then
+            echo "- 🤖 **Bot**: ${{ needs.bot.result == 'success' && '✅ Passed' || needs.bot.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🤖 **Bot**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.changes.outputs.api }}" == "true" ]; then
+            echo "- 🔌 **API**: ${{ needs.api.result == 'success' && '✅ Passed' || needs.api.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🔌 **API**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.changes.outputs.frontend }}" == "true" ]; then
+            echo "- 🎨 **Frontend**: ${{ needs.frontend.result == 'success' && '✅ Passed' || needs.frontend.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🎨 **Frontend**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          if [ "${{ needs.changes.outputs.nginx }}" == "true" ]; then
+            echo "- 🌐 **Nginx**: ${{ needs.nginx.result == 'success' && '✅ Passed' || needs.nginx.result == 'skipped' && '⏭️ Skipped' || '❌ Failed' }}" >> $GITHUB_STEP_SUMMARY
+          else
+            echo "- 🌐 **Nginx**: ⏭️ No changes" >> $GITHUB_STEP_SUMMARY
+          fi
+
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "---" >> $GITHUB_STEP_SUMMARY
+          echo "" >> $GITHUB_STEP_SUMMARY
+          echo "**Commit**: \`${{ github.sha }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Branch**: \`${{ github.ref_name }}\`" >> $GITHUB_STEP_SUMMARY
+          echo "**Triggered by**: ${{ github.event_name }}" >> $GITHUB_STEP_SUMMARY

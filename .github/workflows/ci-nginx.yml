@@ -12,6 +12,7 @@ on:
       - ".build/nginx/**"
       - ".github/workflows/ci-nginx.yml"
   workflow_dispatch:
+  workflow_call: # Позволяет вызывать этот workflow из других workflows
 
 # Автоматическая отмена устаревших сборок при новых коммитах
 concurrency:
