@@ -4,6 +4,6 @@ out/
 build/
 dist/
 public/
+cache/
 package-lock.json
 *.md
-
