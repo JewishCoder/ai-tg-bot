@@ -127,84 +127,210 @@
 
 ```
 ai-tg-bot/
-├── src/
-│   ├── __init__.py
-│   ├── bot.py              # Основной класс бота (Bot)
-│   ├── config.py           # Конфигурация (Config)
-│   ├── database.py         # Database engine и session management
-│   ├── models.py           # SQLAlchemy модели (User, Message, UserSettings)
-│   ├── llm_client.py       # Клиент для работы с LLM (LLMClient)
-│   ├── storage.py          # Хранилище диалогов в PostgreSQL (Storage)
-│   ├── main.py             # Точка входа
-│   ├── handlers/           # Обработчики команд и сообщений
-│   │   ├── __init__.py
-│   │   ├── commands.py     # /start, /help, /role, /status, /reset
-│   │   └── messages.py     # Обработчик текстовых сообщений
-│   └── utils/              # Вспомогательные утилиты
-│       ├── __init__.py
-│       ├── message_splitter.py  # Разбивка длинных сообщений
-│       └── error_formatter.py   # Форматирование ошибок
-├── alembic/                # Директория миграций БД
-│   ├── env.py              # Конфигурация Alembic
-│   └── versions/           # Версии миграций
-├── data/                   # Директория для пользовательских данных
-│   └── .gitkeep
-├── logs/                   # Логи приложения
-│   └── .gitkeep
-├── docs/                   # Документация
+├── backend/
+│   ├── bot/                     # Telegram Bot
+│   │   ├── src/
+│   │   │   ├── __init__.py
+│   │   │   ├── bot.py              # Основной класс бота (Bot)
+│   │   │   ├── config.py           # Конфигурация (Config)
+│   │   │   ├── database.py         # Database engine и session management
+│   │   │   ├── models.py           # SQLAlchemy модели (User, Message, UserSettings)
+│   │   │   ├── llm_client.py       # Клиент для работы с LLM (LLMClient)
+│   │   │   ├── storage.py          # Хранилище диалогов в PostgreSQL (Storage)
+│   │   │   ├── main.py             # Точка входа
+│   │   │   ├── handlers/           # Обработчики команд и сообщений
+│   │   │   │   ├── __init__.py
+│   │   │   │   ├── commands.py     # /start, /help, /role, /status, /reset
+│   │   │   │   └── messages.py     # Обработчик текстовых сообщений
+│   │   │   ├── middlewares/        # Middleware для бота
+│   │   │   │   ├── __init__.py
+│   │   │   │   └── rate_limit.py   # Rate limiting middleware
+│   │   │   └── utils/              # Вспомогательные утилиты
+│   │   │       ├── __init__.py
+│   │   │       ├── message_splitter.py  # Разбивка длинных сообщений
+│   │   │       ├── error_formatter.py   # Форматирование ошибок
+│   │   │       └── log_sanitizer.py     # Sanitization логов (безопасность)
+│   │   ├── alembic/                # Директория миграций БД
+│   │   │   ├── env.py              # Конфигурация Alembic
+│   │   │   └── versions/           # Версии миграций
+│   │   ├── tests/                  # Unit и интеграционные тесты
+│   │   │   ├── __init__.py
+│   │   │   ├── conftest.py         # Фикстуры
+│   │   │   ├── test_storage.py
+│   │   │   ├── test_llm_client.py
+│   │   │   ├── test_rate_limit.py
+│   │   │   ├── test_log_sanitizer.py
+│   │   │   └── integration/        # Интеграционные тесты
+│   │   │       └── test_storage_integration.py
+│   │   ├── .env.example            # Пример конфигурации
+│   │   ├── .env.development        # Development конфигурация (не в git)
+│   │   ├── alembic.ini             # Конфигурация Alembic
+│   │   ├── Dockerfile.dev          # Docker образ для разработки
+│   │   ├── pyproject.toml          # uv конфигурация и зависимости
+│   │   ├── VERSION                 # Версия бота (1.4.2)
+│   │   └── README.md               # Bot README
+│   │
+│   └── api/                     # Stats API (FastAPI)
+│       ├── src/
+│       │   ├── __init__.py
+│       │   ├── app.py              # FastAPI приложение
+│       │   ├── config.py           # Конфигурация API
+│       │   ├── database.py         # Database для Real Collector
+│       │   ├── models.py           # SQLAlchemy модели
+│       │   ├── routers/            # API routers
+│       │   │   ├── __init__.py
+│       │   │   └── stats.py        # Stats router
+│       │   └── stats/              # Статистика
+│       │       ├── __init__.py
+│       │       ├── collector.py    # Абстрактный StatCollector
+│       │       ├── factory.py      # Factory для создания collectors
+│       │       ├── mock_collector.py  # Mock реализация
+│       │       ├── real_collector.py  # Real реализация (PostgreSQL)
+│       │       └── models.py       # Pydantic модели
+│       ├── tests/
+│       │   ├── __init__.py
+│       │   └── test_mock_collector.py
+│       ├── run_api.py              # Entrypoint
+│       ├── Dockerfile              # Docker образ
+│       ├── pyproject.toml          # uv конфигурация
+│       ├── VERSION                 # Версия API (0.1.0)
+│       └── README.md               # API README
+│
+├── frontend/                    # Dashboard (Next.js)
+│   ├── app/                     # Next.js App Router
+│   │   ├── layout.tsx           # Root layout
+│   │   ├── page.tsx             # Home page (Dashboard)
+│   │   ├── dashboard/           # Dashboard page
+│   │   ├── providers.tsx        # React Query Provider
+│   │   └── globals.css          # Global styles
+│   ├── components/
+│   │   ├── ui/                  # shadcn/ui компоненты
+│   │   ├── dashboard/           # Dashboard компоненты
+│   │   │   ├── ActivityChart.tsx
+│   │   │   ├── PeriodFilter.tsx
+│   │   │   ├── RecentDialogsTable.tsx
+│   │   │   ├── TopUsersTable.tsx
+│   │   │   ├── StatsCard.tsx
+│   │   │   └── SummarySection.tsx
+│   │   ├── layout/              # Layout компоненты
+│   │   │   ├── Header.tsx
+│   │   │   └── Footer.tsx
+│   │   └── common/              # Common компоненты
+│   ├── lib/
+│   │   ├── utils.ts             # Utilities
+│   │   ├── api.ts               # API client (Axios)
+│   │   └── hooks/
+│   │       └── useStats.ts      # React Query hook
+│   ├── types/                   # TypeScript types
+│   │   ├── index.d.ts
+│   │   └── api.ts
+│   ├── config/
+│   │   ├── site.ts
+│   │   └── api.ts
+│   ├── tests/                   # Тесты frontend
+│   │   ├── unit/
+│   │   └── integration/
+│   ├── Dockerfile               # Docker образ
+│   ├── package.json             # npm dependencies
+│   ├── tsconfig.json            # TypeScript config
+│   ├── next.config.ts           # Next.js config
+│   ├── tailwind.config.ts       # Tailwind config
+│   ├── components.json          # shadcn/ui config
+│   ├── VERSION                  # Версия frontend (0.1.2)
+│   └── README.md                # Frontend README
+│
+├── docs/                        # Документация
 │   ├── idea.md
 │   ├── vision.md
 │   ├── roadmap.md
-│   └── tasklists/
-├── tests/                  # Unit-тесты
-│   ├── __init__.py
-│   ├── conftest.py         # Фикстуры
-│   ├── test_storage.py
-│   ├── test_llm_client.py
-│   └── test_handlers_integration.py
-├── .cursor/                # Cursor IDE правила
+│   ├── FALLBACK.md
+│   ├── backend/
+│   │   ├── bot/api/             # Bot API Reference
+│   │   └── api/                 # Stats API документация
+│   ├── frontend/                # Frontend документация
+│   │   ├── front-vision.md
+│   │   └── dashboard-requirements.md
+│   ├── guides/                  # Руководства
+│   │   ├── README.md
+│   │   ├── VISUAL_GUIDE.md
+│   │   └── ci-cd.md
+│   └── tasklists/               # Tasklists спринтов
+│
+├── .cursor/                     # Cursor IDE правила
 │   └── rules/
 │       ├── conventions.mdc
 │       └── workflow.mdc
-├── .env.example            # Пример конфигурации
-├── .env                    # Конфигурация (не в git)
+├── .github/
+│   └── workflows/               # GitHub Actions
+│       ├── ci-bot.yml
+│       ├── ci-api.yml
+│       └── ci-frontend.yml
 ├── .gitignore
-├── .dockerignore           # Исключения для Docker
-├── .pre-commit-config.yaml # Pre-commit hooks конфигурация
-├── alembic.ini             # Конфигурация Alembic
-├── Dockerfile.dev          # Docker образ для разработки
-├── docker-compose.yml      # Docker Compose с PostgreSQL
-├── Makefile                # Команды для управления проектом
-├── pyproject.toml          # uv конфигурация и зависимости
-└── README.md
+├── .dockerignore                # Исключения для Docker
+├── .pre-commit-config.yaml      # Pre-commit hooks конфигурация
+├── docker-compose.yml           # Оркестрация всех сервисов (bot, api, frontend, postgres)
+├── Makefile                     # Команды для управления проектом
+├── README.md                    # Главный README
+├── CONTRIBUTING.md              # Руководство по контрибуции
+└── CHANGELOG.md                 # История изменений
 ```
 
 ### Описание компонентов
 
-**Исходный код:**
+**Backend Bot (backend/bot/src/):**
 - **main.py** - точка входа, запуск приложения, парсинг CLI аргументов
 - **bot.py** - инициализация и запуск Telegram бота (упрощен до ~100 строк)
 - **config.py** - загрузка и валидация настроек из `.env`
 - **database.py** - управление подключением к PostgreSQL и сессиями SQLAlchemy
 - **models.py** - SQLAlchemy модели (User, Message, UserSettings) для работы с БД
-- **llm_client.py** - взаимодействие с OpenRouter API
-- **storage.py** - сохранение/загрузка истории диалогов в PostgreSQL (async SQLAlchemy)
+- **llm_client.py** - взаимодействие с OpenRouter API, fallback механизм
+- **storage.py** - сохранение/загрузка истории диалогов в PostgreSQL (async SQLAlchemy, soft delete)
 - **handlers/commands.py** - обработчики команд (/start, /help, /role, /status, /reset)
 - **handlers/messages.py** - обработчик текстовых сообщений
-- **utils/message_splitter.py** - разбивка длинных сообщений на части
-- **utils/error_formatter.py** - форматирование сообщений об ошибках
+- **middlewares/rate_limit.py** - Rate limiting middleware для защиты от spam/DDoS
+- **utils/message_splitter.py** - разбивка длинных сообщений на части (>4096 символов)
+- **utils/error_formatter.py** - форматирование сообщений об ошибках для пользователя
+- **utils/log_sanitizer.py** - санитизация логов (удаление sensitive данных: токены, API ключи)
+
+**Backend API (backend/api/src/):**
+- **app.py** - FastAPI приложение, роутинг, CORS, OpenAPI документация
+- **config.py** - конфигурация API (порт, режим collector: mock/real)
+- **database.py** - подключение к PostgreSQL для Real Collector
+- **models.py** - SQLAlchemy модели для работы с БД
+- **routers/stats.py** - REST API endpoint для получения статистики (/api/v1/stats)
+- **stats/collector.py** - абстрактный базовый класс StatCollector
+- **stats/factory.py** - Factory pattern для создания Mock/Real collectors
+- **stats/mock_collector.py** - генерация тестовых данных (для разработки frontend)
+- **stats/real_collector.py** - реальная статистика из PostgreSQL
+- **stats/models.py** - Pydantic модели для API responses
+
+**Frontend Dashboard (frontend/):**
+- **app/layout.tsx** - Root layout с Header, Footer, Providers
+- **app/page.tsx** - главная страница (редирект на dashboard)
+- **app/dashboard/page.tsx** - Dashboard с полной статистикой
+- **app/providers.tsx** - React Query Provider и другие провайдеры
+- **components/dashboard/** - компоненты dashboard (PeriodFilter, Charts, Tables, Cards)
+- **components/layout/** - layout компоненты (Header, Footer)
+- **components/ui/** - shadcn/ui базовые компоненты
+- **lib/api.ts** - Axios HTTP client для запросов к backend API
+- **lib/hooks/useStats.ts** - React Query hook для получения статистики
+- **lib/utils.ts** - утилиты (cn функция, форматтеры)
+- **types/api.ts** - TypeScript типы для API responses
 
 **Данные и логи:**
-- **data/** - директория для хранения пользовательских данных (зарезервирована для будущего использования)
-- **logs/** - директория для файлов логов
-- **PostgreSQL** - основное хранилище истории диалогов и настроек пользователей
+- **data/** - директория для пользовательских данных (зарезервирована для будущего использования)
+- **logs/** - директория для файлов логов бота
+- **PostgreSQL** - основное хранилище истории диалогов, настроек пользователей и статистики
 
 **DevOps и конфигурация:**
-- **Dockerfile.dev** - Docker образ для разработки (Alpine-based)
-- **docker-compose.yml** - оркестрация Docker контейнера
-- **.dockerignore** - исключения при сборке образа
-- **Makefile** - команды для запуска и управления проектом
+- **backend/bot/Dockerfile.dev** - Docker образ для bot (Alpine-based)
+- **backend/api/Dockerfile** - Docker образ для API (Alpine-based)
+- **frontend/Dockerfile** - Docker образ для frontend (Node.js)
+- **docker-compose.yml** - оркестрация всех сервисов (bot, api, frontend, postgres)
+- **.dockerignore** - исключения при сборке образов
+- **Makefile** - команды для управления всеми сервисами проекта
 - **.env** / **.env.example** - переменные окружения
+- **.github/workflows/** - CI/CD pipelines (bot, api, frontend)
 
 ### Принципы организации
 
@@ -976,5 +1102,5 @@ make test    # Тесты с coverage
 - Fallback механизм для повышения надежности
 - Автоматическое переключение на резервную модель при сбоях
 
-**Дата последнего обновления**: 2025-10-16
+**Дата последнего обновления**: 2025-10-19
 

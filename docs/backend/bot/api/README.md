@@ -162,11 +162,13 @@ bot = Bot(config)
 await bot.start()
 ```
 
-См. [src/main.py](../../src/main.py) для полного примера.
+См. [backend/bot/src/main.py](../../../../backend/bot/src/main.py) для полного примера.
 
 ## Ссылки
 
-- [Техническое видение](../vision.md)
-- [Roadmap](../roadmap.md)
-- [Руководство по разработке](../../.cursor/rules/conventions.mdc)
+- [Техническое видение](../../../vision.md)
+- [Roadmap](../../../roadmap.md)
+- [Руководство по разработке](../../../../.cursor/rules/conventions.mdc)
+- [README проекта](../../../../README.md)
+- [CONTRIBUTING](../../../../CONTRIBUTING.md)
 

@@ -35,9 +35,23 @@
 
 ## Технические аспекты
 
-- **Интеграция**: Telegram Bot API
-- **AI-модель**: Large Language Model (LLM) с поддержкой fallback
+### Backend
+- **Telegram Bot**: Обработка сообщений пользователей через aiogram 3.x
+- **AI-модель**: Large Language Model (LLM) через OpenRouter API с поддержкой fallback
 - **Архитектура**: Обработка сообщений через LLM с заданным системным промптом
 - **Хранилище**: PostgreSQL с SQLAlchemy 2.0 для истории диалогов
 - **Отказоустойчивость**: Автоматическое переключение на резервную модель при сбоях
+- **Stats API**: REST API для получения агрегированной статистики диалогов (FastAPI)
+
+### Frontend
+- **Dashboard**: Web-интерфейс для мониторинга активности бота
+- **Технологии**: Next.js 15 + TypeScript + shadcn/ui
+- **Визуализация**: Графики активности, таблицы диалогов, карточки метрик
+- **Real-time**: Обновление данных через TanStack Query
+
+### Архитектура
+- **Multi-service**: Микросервисная архитектура (Bot, API, Frontend)
+- **Containerization**: Docker + Docker Compose для оркестрации
+- **Database**: Единая PostgreSQL БД для всех сервисов
+- **CI/CD**: Автоматизированные pipelines для каждого сервиса
 

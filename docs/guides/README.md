@@ -174,18 +174,19 @@ Comprehensive визуализация проекта с использован�
 ---
 
 ### 🔧 CI/CD
-**Статус:** 🚧 Планируется  
-**Файл:** `CI_CD.md`  
+**Статус:** ✅ Готов  
+**Файл:** [`ci-cd.md`](./ci-cd.md)  
 **Время:** 30-45 минут  
 **Аудитория:** DevOps, разработчики
 
-**Планируемое содержание:**
-- GitHub Actions workflow (детальный разбор)
-- Версионирование (VERSION file)
-- Branching strategy
-- Pull Request checklist
-- Release process
-- CI troubleshooting
+**Содержание:**
+- Multi-service CI/CD архитектура (Bot, API, Frontend, Nginx)
+- GitHub Actions workflows для каждого сервиса
+- Версионирование (VERSION files для каждого сервиса)
+- Docker образы и registry
+- Quality gates (lint, type-check, tests, coverage)
+- Branching strategy и deployment
+- Troubleshooting и best practices
 
 ---
 
@@ -400,7 +401,7 @@ docs/guides/
 
 ---
 
-**Версия:** 1.0  
-**Последнее обновление:** 2025-10-16  
-**Статус проекта:** 🏆 Production-ready (MVP)
+**Версия:** 1.1  
+**Последнее обновление:** 2025-10-19  
+**Статус проекта:** 🚀 Multi-service Production (Bot 1.4.2 + API 0.1.0 + Frontend 0.1.2)
 

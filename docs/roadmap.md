@@ -30,8 +30,8 @@
 | **S4** | **Frontend Framework Setup** | ✅ Завершено | Создание концепции и инфраструктуры frontend проекта. Выбор технологического стека и настройка инструментов разработки | • ✅ Next.js 15 + TypeScript 5 + npm<br>• ✅ shadcn/ui (10+ компонентов)<br>• ✅ Структура проекта и конфигурация<br>• ✅ ESLint, Prettier, pre-commit hooks<br>• ✅ Vitest + Testing Library<br>• ✅ API client с React Query<br>• ✅ Makefile команды<br>• ✅ Docker конфигурация | [tasklist-S4.md](tasklists/tasklist-S4.md) |
 | **S5** | **Dashboard Implementation** | ✅ Завершено | Реализация дашборда статистики диалогов на основе референса и интеграция с Mock API | • ✅ Dashboard Layout с Sidebar и Header<br>• ✅ Period Filter (Day/Week/Month)<br>• ✅ Summary Cards (3 метрики)<br>• ✅ Activity Timeline Chart (Recharts)<br>• ✅ Recent Dialogs & Top Users Tables (Collapsible)<br>• ✅ Responsive Design<br>• ✅ Error/Empty States | [tasklist-S5.md](tasklists/tasklist-S5.md) |
 | **S6** | **AI Chat Implementation** | ⏳ Планируется | Реализация веб-чата для администратора с возможностью задавать вопросы по статистике диалогов через text-to-SQL | • API endpoints для чата<br>• Text-to-SQL интеграция<br>• UI компоненты чата<br>• LLM integration для ответов<br>• Real-time updates<br>• Тестирование workflow | Будет создан в Plan Mode |
-| **S7** | **Real API Integration** | ⏳ Планируется | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • Real StatCollector implementation<br>• Интеграция с БД (PostgreSQL)<br>• Оптимизация SQL запросов<br>• Переключение Mock → Real<br>• Тестирование производительности<br>• Документация API | [tasklist-S7.md](tasklists/tasklist-S7.md) |
-| **S8** | **CI/CD Infrastructure для Multi-Service** | ⏳ Планируется | Адаптация CI/CD процессов для multi-service архитектуры с полной автоматизацией проверки качества кода и сборки Docker образов для всех сервисов | • Version Management (4 сервиса)<br>• API CI/CD Pipeline с PostgreSQL<br>• Frontend CI/CD Pipeline<br>• Nginx Dockerfile и CI/CD<br>• Unified Workflow<br>• Docker Compose для production<br>• Документация CI/CD | [tasklist-S8.md](tasklists/tasklist-S8.md) |
+| **S7** | **Real API Integration** | ✅ Завершено | Переход с Mock API на реальную реализацию с интеграцией с базой данных PostgreSQL | • ✅ Real StatCollector implementation<br>• ✅ Интеграция с БД (PostgreSQL)<br>• ✅ Оптимизация SQL запросов<br>• ✅ Переключение Mock → Real через конфигурацию<br>• ✅ Integration тесты с PostgreSQL<br>• ✅ Документация API обновлена | [tasklist-S7.md](tasklists/tasklist-S7.md) |
+| **S8** | **CI/CD Infrastructure для Multi-Service** | ✅ Завершено | Адаптация CI/CD процессов для multi-service архитектуры с полной автоматизацией проверки качества кода и сборки Docker образов для всех сервисов | • ✅ Version Management (4 сервиса)<br>• ✅ API CI/CD Pipeline с PostgreSQL<br>• ✅ Frontend CI/CD Pipeline<br>• ✅ Nginx Dockerfile и CI/CD<br>• ✅ Separate workflows для гибкости<br>• ✅ Docker Compose для production<br>• ✅ Документация CI/CD | [tasklist-S8.md](tasklists/tasklist-S8.md) |
 
 ---
 
@@ -163,7 +163,7 @@
 
 ### Дата последнего обновления
 
-**Обновлено**: 2025-10-18
+**Обновлено**: 2025-10-19
 
 **История изменений**:
 
@@ -176,6 +176,8 @@
 - 2025-10-17: Создан детальный tasklist для Спринта S5 (Dashboard Implementation) - 6 блоков работ для реализации полного дашборда с интеграцией Mock API
 - 2025-10-17: Спринт S5 завершен - реализован полнофункциональный dashboard (Sidebar, Period Filter, Summary Cards, Activity Chart, Collapsible Tables, Responsive Design, Error States)
 - 2025-10-17: Создан детальный tasklist для Спринта S7 (Real API Integration) - 6 блоков работ для интеграции с PostgreSQL и замены Mock на Real сборщик статистики
+- 2025-10-17: Спринт S7 завершен - переход на Real API с PostgreSQL (RealStatCollector, оптимизированные SQL запросы с индексами, конфигурируемое переключение Mock/Real, integration тесты с service container, обновленная документация)
 - 2025-10-18: Добавлен спринт S8 (CI/CD Infrastructure для Multi-Service) - адаптация CI/CD для Bot, API, Frontend, Nginx с версионированием и автоматизацией сборки Docker образов
+- 2025-10-19: Спринт S8 завершен - полная CI/CD инфраструктура для multi-service архитектуры (4 отдельных workflows, версионирование, автоматическая сборка и публикация Docker образов, production docker-compose, полная документация)
 
 ---

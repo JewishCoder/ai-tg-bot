@@ -162,20 +162,26 @@ backend/api/
 │   ├── __init__.py
 │   ├── app.py              # FastAPI приложение
 │   ├── config.py           # Конфигурация
+│   ├── database.py         # Database для Real Collector (PostgreSQL)
+│   ├── models.py           # SQLAlchemy модели для Real Collector
 │   ├── routers/
 │   │   ├── __init__.py
 │   │   └── stats.py        # Stats router
 │   └── stats/
 │       ├── __init__.py
-│       ├── collector.py    # Абстрактный StatCollector
-│       ├── models.py       # Pydantic модели
-│       └── mock_collector.py  # Mock реализация
+│       ├── collector.py    # Абстрактный StatCollector (ABC)
+│       ├── factory.py      # Factory для создания Mock/Real collectors
+│       ├── mock_collector.py  # Mock реализация (тестовые данные)
+│       ├── real_collector.py  # Real реализация (PostgreSQL)
+│       └── models.py       # Pydantic модели для API responses
 ├── tests/
 │   ├── __init__.py
-│   └── test_mock_collector.py  # Тесты
+│   ├── test_mock_collector.py  # Unit-тесты Mock collector
+│   └── integration/        # Интеграционные тесты (будущее)
 ├── run_api.py              # Entrypoint
 ├── Dockerfile              # Docker образ
 ├── pyproject.toml          # Конфигурация проекта
+├── VERSION                 # Версия API (0.1.0)
 └── README.md
 ```
 

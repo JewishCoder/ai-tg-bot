@@ -101,17 +101,31 @@ frontend/
 │   ├── providers.tsx         # React Query Provider
 │   └── globals.css           # Global styles + Tailwind
 ├── components/
-│   ├── ui/                   # shadcn/ui components (10+ компонентов)
+│   ├── ui/                   # shadcn/ui components (18 компонентов)
 │   │   ├── button.tsx
 │   │   ├── card.tsx
 │   │   ├── table.tsx
+│   │   ├── sidebar.tsx
+│   │   ├── collapsible.tsx
+│   │   ├── skeleton.tsx
+│   │   ├── sonner.tsx (toasts)
 │   │   └── ...
 │   ├── layout/               # Layout components
 │   │   ├── Header.tsx
 │   │   ├── Footer.tsx
 │   │   └── README.md
-│   ├── dashboard/            # Dashboard specific components (будущее)
-│   └── common/               # Reusable common components (будущее)
+│   ├── dashboard/            # Dashboard specific components
+│   │   ├── ActivityChart.tsx
+│   │   ├── PeriodFilter.tsx
+│   │   ├── RecentDialogsTable.tsx
+│   │   ├── TopUsersTable.tsx
+│   │   ├── StatsCard.tsx
+│   │   ├── SummarySection.tsx
+│   │   ├── app-sidebar.tsx
+│   │   ├── EmptyState.tsx
+│   │   ├── ErrorState.tsx
+│   │   └── README.md
+│   └── common/               # Reusable common components
 ├── lib/
 │   ├── utils.ts              # Utility functions (cn, etc)
 │   ├── api.ts                # API client (Axios)

@@ -8,6 +8,63 @@
 ## [Unreleased]
 
 ### Added
+- 🚀 **Спринт S8: CI/CD Infrastructure для Multi-Service** (Полная автоматизация CI/CD)
+  - Version Management для всех 4 сервисов (Bot 1.4.2, API 0.1.0, Frontend 0.1.2, Nginx 1.0.0)
+  - API CI/CD Pipeline: quality checks, integration tests с PostgreSQL, Docker build & push
+  - Frontend CI/CD Pipeline: ESLint, TypeScript, Vitest, build check, Docker build & push
+  - Nginx CI/CD Pipeline: optimized Dockerfile (alpine), healthcheck, Docker build & push
+  - Bot CI/CD Pipeline: обновлен для multi-service архитектуры
+  - 4 отдельных workflows для гибкости и параллельного выполнения
+  - Кэширование зависимостей (pip, npm, docker layers) для ускорения CI
+  - Conditional push: образы публикуются только для main branch
+  - Production docker-compose с использованием образов из registry
+  - Makefile команды для production деплоя (`deploy-prod`, `pull-images`, `restart-service`)
+  - Полная документация CI/CD процессов (`docs/guides/ci-cd.md`)
+  - CI/CD badges в README для всех сервисов
+- 📊 **Спринт S7: Real API Integration** (Переход на реальную статистику из PostgreSQL)
+  - RealStatCollector с async SQLAlchemy 2.0 + asyncpg драйвером
+  - Database класс для API сервиса с connection pooling (5 connections, overflow 10)
+  - SQLAlchemy модели (User, Message, UserSettings) для работы с БД бота
+  - Оптимизированные SQL запросы с использованием composite индексов
+  - Параллельное выполнение запросов (Summary, Activity, Recent, Top Users)
+  - In-memory TTL кеширование (60 секунд, 100 записей) через cachetools
+  - Retry механизм с exponential backoff (tenacity: 3 попытки, 1s/2s/4s)
+  - Конфигурируемое переключение Mock/Real через `COLLECTOR_MODE` env var
+  - Factory pattern для автоматического выбора collector
+  - Integration тесты с PostgreSQL service container
+  - Health checks для БД (pool_pre_ping)
+  - Обновленная API документация с реальными схемами данных
+  - Архитектурная документация с Mermaid диаграммами
+- 🖥️ **Спринт S5: Dashboard Implementation** (Frontend полностью реализован)
+  - Dashboard Layout с Sidebar, Header, Footer
+  - Period Filter (Day/Week/Month) с state management
+  - Summary Cards (Total Users, Total Messages, Active Dialogs)
+  - Activity Timeline Chart (Recharts) с двойной линией
+  - Recent Dialogs Table (collapsible, форматированные данные)
+  - Top Users Table (collapsible, рейтинг)
+  - Responsive Design для всех устройств
+  - Error States, Empty States, Loading States
+  - Dark/Light theme support
+  - Integration с Mock API через React Query
+  - 10+ dashboard компонентов
+- 🎨 **Спринт S4: Frontend Framework Setup** (Infrastructure готова)
+  - Next.js 15 + TypeScript 5 + npm
+  - shadcn/ui (18 компонентов установлено)
+  - Структура проекта и конфигурация
+  - ESLint, Prettier, pre-commit hooks
+  - Vitest + Testing Library
+  - API client с React Query
+  - Makefile команды для frontend
+  - Docker конфигурация
+- 📊 **Спринт S3: API Requirements & Mock Implementation** (Backend API готов)
+  - Функциональные требования к дашборду (`docs/frontend/dashboard-requirements.md`)
+  - REST API контракт (`docs/backend/api/stats-api-contract.md`)
+  - Интерфейс StatCollector с поддержкой Mock и Real режимов
+  - Mock реализация StatCollector с генерацией реалистичных данных
+  - FastAPI приложение с OpenAPI документацией (Swagger/ReDoc)
+  - Makefile команды для API (`api-run`, `api-dev`, `api-test`)
+  - Docker образ для API
+  - API архитектурная документация
 - ⚡ **Спринт S2: Технический долг и оптимизации** (117 тестов, 89% coverage)
   - Rate limiting middleware для защиты от spam/DDoS (настраиваемые лимиты)
   - Graceful shutdown с корректным завершением активных задач
