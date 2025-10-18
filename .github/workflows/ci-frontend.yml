@@ -63,9 +63,29 @@ jobs:
       - name: Run type checker
         working-directory: frontend
         run: |
-          echo "📝 Checking TypeScript files..."
-          ls -la lib/hooks/
-          ls -la lib/utils/
+          echo "📝 Current directory:"
+          pwd
+          echo ""
+          echo "📂 Directory structure:"
+          ls -la
+          echo ""
+          echo "📂 Checking lib/ folder:"
+          if [ -d "lib" ]; then
+            ls -la lib/
+            if [ -d "lib/hooks" ]; then
+              echo "✅ lib/hooks/ exists"
+            else
+              echo "❌ lib/hooks/ not found"
+            fi
+            if [ -d "lib/utils" ]; then
+              echo "✅ lib/utils/ exists"
+            else
+              echo "❌ lib/utils/ not found"
+            fi
+          else
+            echo "❌ lib/ folder not found"
+          fi
+          echo ""
           echo "🔍 Running type check..."
           npm run type-check
 
