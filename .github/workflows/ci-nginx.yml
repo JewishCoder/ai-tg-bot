@@ -29,7 +29,7 @@ jobs:
           echo "🔧 Creating test configuration..."
           # Создаем временную конфигурацию с localhost вместо Docker имен
           # Это нужно потому что в CI нет docker-compose сети
-          sed 's/frontend:3000/localhost:3000/g; s/api:8000/localhost:8000/g' \
+          sed 's/ai-tg-bot-frontend:3000/localhost:3000/g; s/ai-tg-bot-api:8000/localhost:8000/g' \
             .build/nginx/nginx.conf > /tmp/nginx-test.conf
 
           echo ""
