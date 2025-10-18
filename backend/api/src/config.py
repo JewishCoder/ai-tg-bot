@@ -33,7 +33,14 @@ class Config(BaseSettings):
     CACHE_MAXSIZE: int = Field(default=100, description="Cache max size")
 
     # CORS
-    CORS_ORIGINS: list[str] = ["http://localhost:3000", "http://localhost:5173"]
+    CORS_ORIGINS: list[str] = Field(
+        default=[
+            "http://localhost:8081",  # Nginx reverse proxy
+            "http://localhost:3000",  # Frontend direct (dev)
+            "http://localhost:5173",  # Vite dev server
+        ],
+        description="Allowed CORS origins",
+    )
 
     # Logging
     LOG_LEVEL: str = "INFO"

@@ -1,0 +1,186 @@
+name: CI - API
+
+on:
+  push:
+    branches: [main, develop]
+    paths:
+      - "backend/api/**"
+      - ".github/workflows/ci-api.yml"
+  pull_request:
+    branches: [main, develop]
+    paths:
+      - "backend/api/**"
+      - ".github/workflows/ci-api.yml"
+  workflow_dispatch:
+
+# Автоматическая отмена устаревших сборок при новых коммитах
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  REGISTRY: cr.yandex
+  IMAGE_NAME: ai-tg-api
+
+jobs:
+  api-quality:
+    name: API - Code Quality & Unit Tests
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-api-${{ hashFiles('backend/api/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-api-
+
+      - name: Install dependencies
+        working-directory: backend/api
+        run: uv sync --all-extras
+
+      - name: Check formatting
+        working-directory: backend/api
+        run: uv run ruff format --check src/ tests/
+
+      - name: Run linter
+        working-directory: backend/api
+        run: uv run ruff check src/ tests/
+
+      - name: Run type checker
+        working-directory: backend/api
+        run: uv run mypy src/
+
+      - name: Run unit tests with coverage
+        working-directory: backend/api
+        run: uv run pytest tests/ -m "not integration" --cov=src --cov-report=term --cov-report=xml --cov-fail-under=70
+
+      - name: Upload coverage to artifacts
+        uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: api-coverage
+          path: backend/api/coverage.xml
+
+  api-integration-tests:
+    name: API - Integration Tests
+    runs-on: ubuntu-latest
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: testuser
+          POSTGRES_PASSWORD: testpassword
+          POSTGRES_DB: testdb
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd pg_isready
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+
+      - name: Install uv
+        run: pip install uv
+
+      - name: Cache uv dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/uv
+          key: ${{ runner.os }}-uv-api-${{ hashFiles('backend/api/pyproject.toml') }}
+          restore-keys: |
+            ${{ runner.os }}-uv-api-
+
+      - name: Install dependencies
+        working-directory: backend/api
+        run: uv sync --all-extras
+
+      - name: Run integration tests
+        working-directory: backend/api
+        env:
+          DB_HOST: localhost
+          DB_PORT: 5432
+          DB_NAME: testdb
+          DB_USER: testuser
+          DB_PASSWORD: testpassword
+        run: uv run pytest tests/ -m integration -v
+
+  api-docker:
+    name: API - Build and Push Docker Image
+    runs-on: ubuntu-latest
+    needs: [api-quality, api-integration-tests]
+    # Публикуем только при push в main (не при PR)
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Read version from VERSION file
+        id: version
+        run: |
+          VERSION=$(cat backend/api/VERSION | tr -d '\n\r')
+          echo "version=${VERSION}" >> $GITHUB_OUTPUT
+          echo "📦 Building API version: ${VERSION}"
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to Yandex Container Registry
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: json_key
+          password: ${{ secrets.YA_CLOUD_REGISTRY }}
+
+      - name: Build and push Docker image
+        uses: docker/build-push-action@v5
+        with:
+          context: ./backend/api
+          file: ./backend/api/Dockerfile
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}
+            ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:latest
+          labels: |
+            org.opencontainers.image.title=AI Telegram Bot - Stats API
+            org.opencontainers.image.description=REST API для статистики диалогов AI Telegram бота
+            org.opencontainers.image.version=${{ steps.version.outputs.version }}
+            org.opencontainers.image.revision=${{ github.sha }}
+            org.opencontainers.image.created=${{ github.event.head_commit.timestamp }}
+            org.opencontainers.image.source=${{ github.repositoryUrl }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+      - name: Image info
+        run: |
+          echo "✅ API Docker image published successfully!"
+          echo ""
+          echo "Images:"
+          echo "  - ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.version }}"
+          echo "  - ${{ env.REGISTRY }}/${{ secrets.YC_REGISTRY_ID }}/${{ env.IMAGE_NAME }}:latest"
+          echo ""
+          echo "Version: ${{ steps.version.outputs.version }}"
+          echo "Commit: ${{ github.sha }}"

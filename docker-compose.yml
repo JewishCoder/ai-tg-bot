@@ -28,9 +28,15 @@ services:
         max-file: "3"
 
   bot:
+    # Development mode (local build)
     build:
       context: ./backend/bot
       dockerfile: Dockerfile.dev
+
+    # Production mode (use image from registry)
+    # Uncomment the line below and comment out 'build' section above
+    # image: cr.yandex/${YC_REGISTRY_ID}/ai-tg-bot:${BOT_VERSION:-latest}
+
     container_name: ai-tg-bot
     depends_on:
       postgres:
@@ -67,12 +73,16 @@ services:
     #       memory: 128M
 
   api:
+    # Development mode (local build)
     build:
       context: ./backend/api
       dockerfile: Dockerfile
+
+    # Production mode (use image from registry)
+    # Uncomment the line below and comment out 'build' section above
+    # image: cr.yandex/${YC_REGISTRY_ID}/ai-tg-api:${API_VERSION:-latest}
+
     container_name: ai-tg-bot-api
-    ports:
-      - "8080:8000"
     environment:
       - API_HOST=0.0.0.0
       - API_PORT=8000
@@ -87,6 +97,7 @@ services:
       - DB_MAX_OVERFLOW=10
       - CACHE_TTL=60
       - LOG_LEVEL=INFO
+      - CORS_ORIGINS=["http://localhost:8081"]
       - PYTHONUNBUFFERED=1
       - PYTHONDONTWRITEBYTECODE=1
     restart: unless-stopped
@@ -109,18 +120,59 @@ services:
         max-file: "3"
 
   frontend:
+    # Development mode (local build)
     build:
       context: ./frontend
       dockerfile: Dockerfile
+
+    # Production mode (use image from registry)
+    # Uncomment the line below and comment out 'build' section above
+    # image: cr.yandex/${YC_REGISTRY_ID}/ai-tg-frontend:${FRONTEND_VERSION:-latest}
+
     container_name: ai-tg-bot-frontend
-    ports:
-      - "3000:3000"
     environment:
-      - NEXT_PUBLIC_API_URL=http://localhost:8080
+      - NEXT_PUBLIC_API_URL=http://localhost:8081
       - NODE_ENV=production
     depends_on:
       - api
     restart: unless-stopped
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "10m"
+        max-file: "3"
+
+  nginx:
+    # Development mode (local build with custom Dockerfile)
+    build:
+      context: ./.build/nginx
+      dockerfile: Dockerfile
+
+    # Production mode (use image from registry)
+    # Uncomment the line below and comment out 'build' section above
+    # image: cr.yandex/${YC_REGISTRY_ID}/ai-tg-nginx:${NGINX_VERSION:-latest}
+
+    container_name: ai-tg-bot-nginx
+    ports:
+      - "8081:80"
+    depends_on:
+      - api
+      - frontend
+    restart: unless-stopped
+    healthcheck:
+      test:
+        [
+          "CMD",
+          "wget",
+          "--quiet",
+          "--tries=1",
+          "--spider",
+          "http://localhost/health",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 5s
+      retries: 3
     logging:
       driver: "json-file"
       options:

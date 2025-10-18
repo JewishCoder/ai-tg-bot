@@ -93,6 +93,13 @@ help:
 	@echo "Maintenance:"
 	@echo "  make clean         - Clean temporary files and caches"
 	@echo ""
+	@echo "Production Deployment:"
+	@echo "  make pull-images   - Pull Docker images from registry"
+	@echo "  make deploy-prod   - Deploy production environment"
+	@echo "  make restart-service service=<name> - Restart specific service"
+	@echo "  make prod-logs     - View all production logs"
+	@echo "  make prod-status   - Show production services status"
+	@echo ""
 	@echo "==================================================="
 
 # ===== Bot Development =====
@@ -288,4 +295,35 @@ clean:
 	@$(FIND_PYC)
 	@$(FIND_PYO)
 	@echo "Cleaned successfully!"
+
+# ===== Production Deployment =====
+
+pull-images:
+	@echo "Pulling Docker images from registry..."
+	@echo "Note: Make sure YC_REGISTRY_ID and version variables are set in .env"
+	docker-compose pull
+	@echo "Images pulled successfully!"
+
+deploy-prod:
+	@echo "Deploying production environment..."
+	@echo "Note: Make sure to configure docker-compose.yml to use 'image' instead of 'build'"
+	docker-compose --env-file .env.production up -d
+	@echo "Production deployment started!"
+
+restart-service:
+ifndef service
+	@echo "Error: Please specify service name: make restart-service service=<bot|api|frontend|nginx>"
+	@exit 1
+endif
+	@echo "Restarting service: $(service)..."
+	docker-compose restart $(service)
+	@echo "Service $(service) restarted!"
+
+prod-logs:
+	@echo "Showing all production logs (Ctrl+C to exit)..."
+	docker-compose logs -f
+
+prod-status:
+	@echo "Production services status:"
+	docker-compose ps
 

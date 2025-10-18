@@ -1,6 +1,9 @@
 # AI Telegram Bot
 
-[![CI](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci.yml)
+[![CI - Bot](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-bot.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-bot.yml)
+[![CI - API](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-api.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-api.yml)
+[![CI - Frontend](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-frontend.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-frontend.yml)
+[![CI - Nginx](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-nginx.yml/badge.svg)](https://github.com/jewishcoder/ai-tg-bot/actions/workflows/ci-nginx.yml)
 [![Coverage](https://img.shields.io/badge/coverage-89%25-brightgreen.svg)](./htmlcov/index.html)
 [![Tests](https://img.shields.io/badge/tests-117%20passing-brightgreen.svg)](#-тестирование)
 [![Python](https://img.shields.io/badge/python-3.11+-blue.svg)](https://www.python.org/downloads/)
@@ -44,7 +47,8 @@
 - 🔍 **Строгая типизация** (Mypy strict mode)
 - 📏 **Code quality** (Ruff linter + formatter)
 - 🪝 **Pre-commit hooks** - автоматические проверки
-- 🤖 **CI/CD** - GitHub Actions
+- 🤖 **CI/CD** - Multi-service pipelines для Bot, API, Frontend, Nginx
+- 📦 **Docker Registry** - автоматическая публикация образов
 
 ---
 
@@ -72,6 +76,7 @@
 - 📖 **[Все гайды](docs/guides/README.md)** - полный индекс документации
 - 🐳 **[DOCKER.md](DOCKER.md)** - работа с Docker
 - 🛡️ **[FALLBACK.md](docs/FALLBACK.md)** - fallback механизм
+- 🤖 **[CI/CD Guide](docs/guides/ci-cd.md)** - полная документация CI/CD процессов
 
 ---
 
