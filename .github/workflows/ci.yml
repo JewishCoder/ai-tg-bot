@@ -8,9 +8,10 @@ on:
   workflow_dispatch:
 
 # Автоматическая отмена устаревших сборок при новых коммитах
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}
-  cancel-in-progress: true
+# Временно отключено для тестирования CI
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}
+#   cancel-in-progress: true
 
 jobs:
   # ===== Detect Changes =====

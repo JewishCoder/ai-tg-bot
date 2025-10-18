@@ -16,9 +16,10 @@ on:
   workflow_call: # Позволяет вызывать этот workflow из других workflows
 
 # Автоматическая отмена устаревших сборок при новых коммитах
-concurrency:
-  group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
-  cancel-in-progress: true
+# Временно отключено для тестирования CI
+# concurrency:
+#   group: ${{ github.workflow }}-${{ github.ref }}-${{ github.run_id }}
+#   cancel-in-progress: true
 
 env:
   REGISTRY: cr.yandex
