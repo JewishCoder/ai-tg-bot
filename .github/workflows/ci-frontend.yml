@@ -45,6 +45,13 @@ jobs:
         working-directory: frontend
         run: npm ci
 
+      - name: Prepare environment
+        working-directory: frontend
+        run: |
+          echo "🔧 Setting up environment..."
+          echo "NEXT_PUBLIC_API_URL=http://localhost:8081" > .env.local
+          npx next telemetry disable
+
       - name: Run linter
         working-directory: frontend
         run: npm run lint
@@ -55,7 +62,12 @@ jobs:
 
       - name: Run type checker
         working-directory: frontend
-        run: npx tsc --noEmit
+        run: |
+          echo "📝 Checking TypeScript files..."
+          ls -la lib/hooks/
+          ls -la lib/utils/
+          echo "🔍 Running type check..."
+          npm run type-check
 
       - name: Run tests with coverage
         working-directory: frontend
