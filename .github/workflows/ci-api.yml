@@ -121,11 +121,11 @@ jobs:
       - name: Run integration tests
         working-directory: backend/api
         env:
-          DB_HOST: localhost
-          DB_PORT: 5432
-          DB_NAME: testdb
-          DB_USER: testuser
-          DB_PASSWORD: testpassword
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 5432
+          TEST_DB_NAME: testdb
+          TEST_DB_USER: testuser
+          TEST_DB_PASSWORD: testpassword
         run: uv run pytest tests/ -m integration -v
 
   api-docker:

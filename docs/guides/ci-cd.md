@@ -489,6 +489,66 @@ concurrency:
 
 Это делает каждый запуск уникальным и предотвращает deadlock между вызванными и независимо запущенными workflows.
 
+**Статус**: ✅ Решено в commit `a768b36`
+
+---
+
+### Проблема: API Integration Tests - Неправильные переменные окружения
+
+**Симптомы**: 
+```
+API Integration Tests: Process completed with exit code 1
+```
+
+**Причина**: Несоответствие имен переменных окружения в CI и тестах.
+
+**В CI передавали**:
+```yaml
+env:
+  DB_HOST: localhost  # без префикса TEST_
+```
+
+**Тесты ожидали**:
+```python
+db_host = os.getenv("TEST_DB_HOST", "localhost")  # с префиксом TEST_
+```
+
+**Решение**: Добавлен префикс `TEST_` ко всем переменным в CI workflow:
+```yaml
+env:
+  TEST_DB_HOST: localhost
+  TEST_DB_PORT: 5432
+  TEST_DB_NAME: testdb
+  TEST_DB_USER: testuser
+  TEST_DB_PASSWORD: testpassword
+```
+
+---
+
+### Проблема: Nginx Configuration Validation Failed
+
+**Симптомы**: 
+```
+Nginx - Validate Configuration: Process completed with exit code 1
+```
+
+**Причина**: Возможные проблемы:
+1. Пустая строка в конце `nginx.conf`
+2. Неправильный путь монтирования в Docker
+3. Отсутствие явного указания конфигурационного файла
+
+**Решение**: 
+1. Убрана лишняя пустая строка в `nginx.conf`
+2. Изменена команда валидации:
+   ```yaml
+   run: |
+     ls -la .build/nginx/nginx.conf  # Проверка существования
+     docker run --rm \
+       -v $(pwd)/.build/nginx/nginx.conf:/etc/nginx/nginx.conf:ro \
+       nginx:alpine \
+       nginx -t -c /etc/nginx/nginx.conf  # Явное указание конфига
+   ```
+
 ### Проблема: GitHub Actions не запускаются
 
 **Причина**: Path filters не совпадают с измененными файлами.
